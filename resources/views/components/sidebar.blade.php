@@ -1,0 +1,155 @@
+        <flux:sidebar.nav>
+
+            <!-- Dashboard -->
+            <flux:sidebar.item
+                icon="home"
+                href="{{ route('dashboard') }}"
+                wire:navigate
+                :current="request()->routeIs('dashboard')"
+                class="hover:bg-zinc-800 hover:text-white data-[current]:bg-zinc-800 data-[current]:text-white font-medium">
+                Dashboard
+            </flux:sidebar.item>
+
+            <!-- User Management -->
+            <flux:sidebar.group expandable heading="User Management" class="grid">
+
+                <flux:sidebar.item
+                    icon="users"
+                    href="{{ route('student.index') }}"
+                    wire:navigate
+                    :current="request()->routeIs('student*')"
+                    class="hover:bg-zinc-800 hover:text-white data-[current]:bg-zinc-800 data-[current]:text-white font-medium"
+                >
+                    Siswa
+                </flux:sidebar.item>
+
+                <flux:sidebar.item
+                    icon="user"
+                    href="{{ route('teacher.index') }}"
+                    wire:navigate
+                    :current="request()->routeIs('teacher*')"
+                    class="hover:bg-zinc-800 hover:text-white data-[current]:bg-zinc-800 data-[current]:text-white font-medium">
+                    Teacher
+                </flux:sidebar.item>
+
+            </flux:sidebar.group>
+
+            <!-- Materi -->
+            <flux:sidebar.group expandable heading="Materi" class="grid">
+
+                <flux:sidebar.item
+                    icon="book-open"
+                    href="{{ route('course.index') }}"
+                    wire:navigate
+                    :current="request()->routeIs('course*')"
+                    class="hover:bg-zinc-800 hover:text-white data-[current]:bg-zinc-800 data-[current]:text-white font-medium">
+                    Kelas
+                </flux:sidebar.item>
+                
+
+                <flux:sidebar.item
+                    icon="book-open"
+                    href="{{ route('sub-course.index') }}"
+                    wire:navigate
+                    :current="request()->routeIs('sub-course*')"
+                    class="hover:bg-zinc-800 hover:text-white data-[current]:bg-zinc-800 data-[current]:text-white font-medium">
+                    Sub Materi
+                </flux:sidebar.item>
+
+                <flux:sidebar.item
+                    icon="book-open"
+                    class="hover:bg-zinc-800 hover:text-white">
+                    Ebook
+                </flux:sidebar.item>
+
+                <flux:sidebar.item
+                    icon="video-camera"
+                    class="hover:bg-zinc-800 hover:text-white">
+                    Video
+                </flux:sidebar.item>
+
+                <flux:sidebar.item
+                    icon="document-text"
+                    class="hover:bg-zinc-800 hover:text-white">
+                    Materi PDF
+                </flux:sidebar.item>
+
+            </flux:sidebar.group>
+
+            <!-- Quiz -->
+            <flux:sidebar.group expandable heading="Quiz" class="grid">
+
+                <flux:sidebar.item icon="clipboard-document-list">
+                    Quiz
+                </flux:sidebar.item>
+
+                <flux:sidebar.item icon="question-mark-circle">
+                    Bank Soal
+                </flux:sidebar.item>
+
+                <flux:sidebar.item icon="chart-bar">
+                    Hasil Quiz
+                </flux:sidebar.item>
+
+            </flux:sidebar.group>
+
+            <!-- Kalender -->
+            <flux:sidebar.item icon="calendar">
+                Kalender Akademik
+            </flux:sidebar.item>
+
+            <!-- Laporan -->
+            <flux:sidebar.group expandable heading="Laporan" class="grid">
+
+                <flux:sidebar.item icon="chart-pie">
+                    Progress Belajar
+                </flux:sidebar.item>
+
+                <flux:sidebar.item icon="document-chart-bar">
+                    Nilai Quiz
+                </flux:sidebar.item>
+
+            </flux:sidebar.group>
+
+        </flux:sidebar.nav>
+
+        <flux:sidebar.spacer />
+
+        <flux:sidebar.nav>
+            <flux:sidebar.item icon="cog-6-tooth">Settings</flux:sidebar.item>
+            <flux:sidebar.item icon="information-circle">Help</flux:sidebar.item>
+        </flux:sidebar.nav>
+
+        <!-- PROFILE -->
+        <flux:dropdown position="top" align="start" class="max-lg:hidden">
+
+            <flux:sidebar.profile
+                avatar="https://fluxui.dev/img/demo/user.png"
+                name="{{ auth()->user()->name ?? 'User' }}"
+            />
+
+            <flux:menu>
+
+                <flux:menu.radio.group>
+                    <flux:menu.radio checked>
+                        {{ auth()->user()->name ?? 'User' }}
+                    </flux:menu.radio>
+                </flux:menu.radio.group>
+
+                <flux:menu.separator />
+
+                <form method="POST" action="{{ route('logout') }}">
+                    @csrf
+
+                    <flux:menu.item
+                        icon="arrow-right-start-on-rectangle"
+                        onclick="event.preventDefault(); this.closest('form').submit();">
+                        Logout
+                    </flux:menu.item>
+
+                </form>
+
+            </flux:menu>
+
+        </flux:dropdown>
+
