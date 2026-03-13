@@ -1,0 +1,56 @@
+<?php
+
+namespace App\Livewire\Quiz\Form;
+
+use App\Models\ClassRoom;
+use App\Models\Quiz;
+use Livewire\Component;
+
+class Edit extends Component
+{
+    public $quizId;
+
+    public $class_id;
+    public $title;
+    public $duration;
+
+    protected $rules = [
+        'class_id' => 'required|exists:classes,id',
+        'title' => 'required|string|max:255',
+        'duration' => 'required|integer|min:1'
+    ];
+
+    public function mount($id)
+    {
+        $quiz = Quiz::findOrFail($id);
+
+        $this->quizId = $quiz->id;
+        $this->class_id = $quiz->class_id;
+        $this->title = $quiz->title;
+        $this->duration = $quiz->duration;
+    }
+
+    public function update()
+    {
+        $this->validate();
+
+        $quiz = Quiz::findOrFail($this->quizId);
+
+        $quiz->update([
+            'class_id' => $this->class_id,
+            'title' => $this->title,
+            'duration' => $this->duration
+        ]);
+
+        session()->flash('success', 'Quiz berhasil diperbarui');
+
+        return $this->redirect(route('quiz.index'), navigate: true);
+    }
+
+    public function render()
+    {
+        return view('livewire.quiz.form.edit', [
+            'classes' => ClassRoom::all()
+        ])->layout('layouts.admin');
+    }
+}

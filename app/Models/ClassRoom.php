@@ -19,24 +19,32 @@ class ClassRoom extends Model
         return $this->hasMany(Chapter::class, 'class_id');
     }
 
+    public function quizzes()
+    {
+        return $this->hasMany(Quiz::class, 'class_id');
+    }
+
     protected static function booted()
     {
         static::deleting(function ($class) {
 
+            // hapus quiz langsung dari class
+            foreach ($class->quizzes as $quiz) {
+                $quiz->questions()->delete();
+                $quiz->results()->delete();
+                $quiz->delete();
+            }
+
+            // hapus chapter dan materinya
             foreach ($class->chapters as $chapter) {
 
                 $chapter->ebooks()->delete();
                 $chapter->videos()->delete();
                 $chapter->materiPdf()->delete();
 
-                foreach ($chapter->quizzes as $quiz) {
-                    $quiz->questions()->delete();
-                    $quiz->results()->delete();
-                    $quiz->delete();
-                }
-
                 $chapter->delete();
             }
+
         });
     }
 }

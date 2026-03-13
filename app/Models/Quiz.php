@@ -8,7 +8,7 @@ class Quiz extends Model
 {
     //
     protected $fillable = [
-        'chapter_id',
+        'class_id',
         'title',
         'duration'
     ];
@@ -18,13 +18,26 @@ class Quiz extends Model
         return $this->hasMany(Question::class);
     }
 
-    public function chapter()
+    public function classRoom()
     {
-        return $this->belongsTo(Chapter::class);
+        return $this->belongsTo(ClassRoom::class, 'class_id');
     }
 
     public function results()
     {
         return $this->hasMany(QuizResult::class);
+    }
+
+    protected static function booted()
+    {
+        static::deleting(function ($quiz) {
+
+            foreach ($quiz->questions as $question) {
+                $question->delete();
+            }
+
+            $quiz->results()->delete();
+
+        });
     }
 }

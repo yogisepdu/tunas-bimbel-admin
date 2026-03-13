@@ -129,11 +129,11 @@
     wire.loading.attr="disabled"
     class="text-white bg-brand hover:bg-brand-strong focus:ring-4 focus:ring-brand-medium shadow-xs font-medium rounded-base text-sm px-4 py-2.5">
 
-        <span wire:loading.remove wire.target="save">
+        <span wire:loading.remove wire:target="save">
             Register
         </span>
 
-        <span wire.loading wire.target="save">
+        <span wire:loading wire:target="save">
             Registering...
         </span>
 

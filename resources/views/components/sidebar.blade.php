@@ -58,40 +58,33 @@
 
                 <flux:sidebar.item
                     icon="book-open"
-                    class="hover:bg-zinc-800 hover:text-white">
-                    Ebook
-                </flux:sidebar.item>
-
-                <flux:sidebar.item
-                    icon="video-camera"
-                    class="hover:bg-zinc-800 hover:text-white">
+                    href="{{ route('video.index') }}"
+                    wire:navigate
+                    :current="request()->routeIs('video*')"
+                    class="hover:bg-zinc-800 hover:text-white data-[current]:bg-zinc-800 data-[current]:text-white font-medium">
                     Video
                 </flux:sidebar.item>
 
                 <flux:sidebar.item
                     icon="document-text"
-                    class="hover:bg-zinc-800 hover:text-white">
+                    href="{{ route('pdf.index') }}"
+                    wire:navigate
+                    :current="request()->routeIs('pdf*')"
+                    class="hover:bg-zinc-800 hover:text-white data-[current]:bg-zinc-800 data-[current]:text-white font-medium">
                     Materi PDF
                 </flux:sidebar.item>
 
             </flux:sidebar.group>
 
             <!-- Quiz -->
-            <flux:sidebar.group expandable heading="Quiz" class="grid">
-
-                <flux:sidebar.item icon="clipboard-document-list">
-                    Quiz
-                </flux:sidebar.item>
-
-                <flux:sidebar.item icon="question-mark-circle">
-                    Bank Soal
-                </flux:sidebar.item>
-
-                <flux:sidebar.item icon="chart-bar">
-                    Hasil Quiz
-                </flux:sidebar.item>
-
-            </flux:sidebar.group>
+            <flux:sidebar.item
+                icon="clipboard-document-list"
+                href="{{ route('quiz.index') }}"
+                wire:navigate
+                :current="request()->routeIs('quiz*')"
+                class="hover:bg-zinc-800 hover:text-white data-[current]:bg-zinc-800 data-[current]:text-white font-medium">
+                Quiz
+            </flux:sidebar.item>
 
             <!-- Kalender -->
             <flux:sidebar.item icon="calendar">
