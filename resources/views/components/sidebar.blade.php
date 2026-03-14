@@ -85,9 +85,14 @@
                 class="hover:bg-zinc-800 hover:text-white data-[current]:bg-zinc-800 data-[current]:text-white font-medium">
                 Quiz
             </flux:sidebar.item>
-
             <!-- Kalender -->
-            <flux:sidebar.item icon="calendar">
+
+            <flux:sidebar.item
+                icon="calendar"
+                href="{{ route('kalender.index') }}"
+                wire:navigate
+                :current="request()->routeIs('kalender*')"
+                class="hover:bg-zinc-800 hover:text-white data-[current]:bg-zinc-800 data-[current]:text-white font-medium">
                 Kalender Akademik
             </flux:sidebar.item>
 
