@@ -39,7 +39,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::get('/calendar-events', [CalendarController::class, 'index']);
 
-    Route::get('/quiz/{quiz}/questions', [QuizController::class, 'questions']);
+    Route::get('/chapter/{chapter}/quiz', [QuizController::class, 'questions']);
 
     Route::get('/quiz/{quiz}/meta', [QuizMetaController::class, 'show']);
 

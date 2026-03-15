@@ -19,33 +19,18 @@ class ProgressController extends Controller
             'quiz_id' => 'nullable'
         ]);
 
-        $progress = UserLearningProgress::firstOrCreate(
+        $progress = UserLearningProgress::updateOrCreate(
             [
                 'user_id' => auth()->id(),
-                'chapter_id' => $data['chapter_id']
+                'chapter_id' => $data['chapter_id'],
+                'video_id' => $data['video_id'] ?? null,
+                'pdf_id' => $data['pdf_id'] ?? null,
+                'quiz_id' => $data['quiz_id'] ?? null,
             ],
             [
-                'status' => false,
-                'progress_percent' => 0
+                'status' => true
             ]
         );
-
-        // update kolom yang dikirim
-        if (isset($data['video_id'])) {
-            $progress->video_id = $data['video_id'];
-        }
-
-        if (isset($data['pdf_id'])) {
-            $progress->pdf_id = $data['pdf_id'];
-        }
-
-        if (isset($data['quiz_id'])) {
-            $progress->quiz_id = $data['quiz_id'];
-        }
-
-        $progress->status = true;
-
-        $progress->save();
 
         return response()->json([
             'success' => true,
