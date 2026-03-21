@@ -30,7 +30,7 @@ class ImportExcel extends Component
 
             $this->reset(['file']);
 
-            session()->flash('success', 'Import Excel berhasil 🚀');
+            session()->flash('success', 'Import Excel berhasil');
 
         } catch (\Throwable $e) {
             session()->flash('error', 'Gagal import file');

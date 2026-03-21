@@ -49,8 +49,7 @@
         <button
             type="submit"
             class="w-full bg-green-600 hover:bg-green-700 text-white py-2.5 rounded-lg">
-
-            🚀 Import Excel
+            Import Excel
         </button>
 
     </form>
