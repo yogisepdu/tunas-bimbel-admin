@@ -17,7 +17,7 @@ class ProgressController extends Controller
             'chapter_id' => 'required',
             'video_id' => 'nullable',
             'pdf_id' => 'nullable',
-            'quiz_id' => 'nullable'
+            'quiz_id' => 'nullable',
         ]);
 
         $progress = UserLearningProgress::updateOrCreate(
@@ -49,6 +49,7 @@ class ProgressController extends Controller
             'correct' => 'required|integer',
             'wrong' => 'required|integer',
             'empty' => 'required|integer',
+            'answers' => 'nullable|array', // 🔥 tambah
         ]);
 
         $result = QuizResult::create([
@@ -58,11 +59,62 @@ class ProgressController extends Controller
             'correct' => $data['correct'],
             'wrong' => $data['wrong'],
             'empty' => $data['empty'],
+            'answers' => json_encode($data['answers']), // 🔥 simpan
         ]);
 
         return response()->json([
             'message' => 'Result berhasil disimpan',
             'data' => $result
         ]);
+    }
+
+    public function checkQuizProgress(Request $request, $chapterId)
+    {
+        $user = $request->user();
+
+        $progress = UserLearningProgress::where('user_id', $user->id)
+            ->where('chapter_id', $chapterId)
+            ->whereNotNull('quiz_id')
+            ->first();
+
+        if (!$progress) {
+            return response()->json([
+                'has_done' => false
+            ]);
+        }
+
+        $result = QuizResult::where('user_id', $user->id)
+            ->where('quiz_id', $progress->quiz_id)
+            ->latest()
+            ->first();
+
+        return response()->json([
+            'has_done' => true,
+            'result' => [
+                ...$result->toArray(),
+                'answers' => json_decode($result->answers, true), // 🔥 FIX
+            ]
+        ]);
+    }
+
+    // 🔥 fitur baru: leaderboard
+    public function leaderboard($quizId)
+    {
+        $results = QuizResult::with('user')
+            ->where('quiz_id', $quizId)
+            ->orderByDesc('score')
+            ->orderBy('created_at')
+            ->get();
+
+        $data = $results->values()->map(function ($item, $index) {
+            return [
+                'rank' => $index + 1,
+                'user_id' => $item->user_id,
+                'user_name' => $item->user->name ?? 'User',
+                'score' => $item->score,
+            ];
+        });
+
+        return response()->json($data);
     }
 }

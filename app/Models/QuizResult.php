@@ -13,6 +13,13 @@ class QuizResult extends Model
         'score',
         'correct',
         'wrong',
-        'empty'
+        'empty',
+        'answers'
     ];
+
+    // QuizResult.php
+    public function user()
+    {
+        return $this->belongsTo(User::class);
+    }
 }

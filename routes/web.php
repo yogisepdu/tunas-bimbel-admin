@@ -1,5 +1,6 @@
 <?php
 
+use App\Exports\SoalTemplateExport;
 use App\Livewire\Auth\Login;
 use App\Livewire\Class\CourseIndex;
 use App\Livewire\Class\Form\Create;
@@ -15,6 +16,11 @@ use App\Livewire\Quiz\Form\Edit as QuizFormEdit;
 use App\Livewire\Quiz\Index as QuizIndex;
 use App\Livewire\Quizez\Form\Create as QuizezFormCreate;
 use App\Livewire\Quizez\Index as QuizezIndex;
+use App\Livewire\SoalSection\Form\Create as SoalSectionFormCreate;
+use App\Livewire\SoalSection\Form\ImportExcel;
+use App\Livewire\SoalSection\Index as SoalSectionIndex;
+use App\Livewire\SoalSection\SoalQuestion;
+use App\Livewire\SoalSection\SoalSet;
 use App\Livewire\SubCourse\Form\Create as FormCreate;
 use App\Livewire\SubCourse\Form\Edit as FormEdit;
 use App\Livewire\SubCourse\Index;
@@ -29,6 +35,7 @@ use App\Livewire\Video\Form\Edit as VideoFormEdit;
 use App\Livewire\Video\Index as VideoIndex;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
+use Maatwebsite\Excel\Facades\Excel;
 
 Route::get('/', Login::class)->name('login');
 
@@ -74,6 +81,19 @@ Route::middleware('auth')->group(function () {
     // Create Question
     Route::get('/quiz/{quiz}/questions', QuizezIndex::class)->name('question.index');
     Route::get('/quiz/{quiz}/questions/create', QuizezFormCreate::class)->name('question.create');
+
+    // Soal Section
+    Route::get('/soal-section', SoalSectionIndex::class)->name('soal-section.index');
+    Route::get('/soal-set/create', SoalSet::class)->name('soal-set.index');
+    Route::get('/soal-question/home', SoalQuestion::class)->name('soal-question.index');
+    Route::get('/soal-question/create', SoalSectionFormCreate::class)->name('soal-question.create');
+    Route::get('/soal/import', ImportExcel::class)->name('soal.import');
+    Route::get('/soal/template', function () {
+        return Excel::download(
+            new SoalTemplateExport,
+            'template-soal.xlsx'
+        );
+    })->name('soal.template');
 
     // Kalender
     Route::get('/kalender', KalenderIndex::class)->name('kalender.index');

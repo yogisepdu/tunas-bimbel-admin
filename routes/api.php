@@ -39,6 +39,10 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::post('/quiz-result', [ProgressController::class, 'storeResult']);
 
+    Route::get('/quiz-progress/{chapterId}', [ProgressController::class, 'checkQuizProgress']);
+
+    Route::get('/leaderboard/{quizId}', [ProgressController::class, 'leaderboard']);
+
     Route::get('/calendar-events', [CalendarController::class, 'index']);
 
     Route::get('/chapter/{chapter}/quiz', [QuizController::class, 'questions']);

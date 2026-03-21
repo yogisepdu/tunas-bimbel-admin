@@ -85,6 +85,39 @@
                 class="hover:bg-zinc-800 hover:text-white data-[current]:bg-zinc-800 data-[current]:text-white font-medium">
                 Quiz
             </flux:sidebar.item>
+
+            {{-- Quiz --}}
+            <flux:sidebar.group expandable heading="Soal TryOut" class="grid">
+
+                <flux:sidebar.item
+                    icon="clipboard-document-list"
+                    href="{{ route('soal-section.index') }}"
+                    wire:navigate
+                    :current="request()->routeIs('soal-section*')"
+                    class="hover:bg-zinc-800 hover:text-white data-[current]:bg-zinc-800 data-[current]:text-white font-medium">
+                    Soal Section
+                </flux:sidebar.item>
+
+                {{-- Soal Set --}}
+                <flux:sidebar.item
+                    icon="clipboard-document-list"
+                    href="{{ route('soal-set.index') }}"
+                    wire:navigate
+                    :current="request()->routeIs('soal-set*')"
+                    class="hover:bg-zinc-800 hover:text-white data-[current]:bg-zinc-800 data-[current]:text-white font-medium">
+                    Soal Set
+                </flux:sidebar.item>
+
+                {{-- Soal Question --}}
+                <flux:sidebar.item
+                    icon="clipboard-document-list"
+                    href="{{ route('soal-question.index') }}"
+                    wire:navigate
+                    :current="request()->routeIs('soal-question.index')"
+                    class="hover:bg-zinc-800 hover:text-white data-[current]:bg-zinc-800 data-[current]:text-white font-medium">
+                    Soal Question
+                </flux:sidebar.item>
+            </flux:sidebar.group>
             <!-- Kalender -->
 
             <flux:sidebar.item
