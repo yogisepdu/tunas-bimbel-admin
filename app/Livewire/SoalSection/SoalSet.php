@@ -49,6 +49,13 @@ class SoalSet extends Component
         session()->flash('success', 'Soal Set berhasil ditambahkan');
     }
 
+    public function delete($id)
+    {
+        $set = SoalSetModel::findOrFail($id);
+        $set->delete();
+
+        session()->flash('success', 'Soal Set berhasil dihapus');
+    }
     public function render()
     {
         return view('livewire.soal-section.soal-set', [

@@ -17,6 +17,7 @@ class Index extends Component
         ])->layout('layouts.admin');
     }
 
+
     #[On('deleteClass')]
     public function delete($id)
     {

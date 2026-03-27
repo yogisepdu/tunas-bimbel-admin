@@ -8,6 +8,7 @@ use App\Livewire\Class\Form\Edit;
 use App\Livewire\Dashboard;
 use App\Livewire\Kalender\Form\Index as FormIndex;
 use App\Livewire\Kalender\Index as KalenderIndex;
+use App\Livewire\Linked\Index as LinkedIndex;
 use App\Livewire\Pdf\Form\Create as PdfFormCreate;
 use App\Livewire\Pdf\Form\Edit as PdfFormEdit;
 use App\Livewire\Pdf\Index as PdfIndex;
@@ -99,6 +100,9 @@ Route::middleware('auth')->group(function () {
     Route::get('/kalender', KalenderIndex::class)->name('kalender.index');
     Route::get('/kalender/create', FormIndex::class)->name('kalender.create');
     
+    // Linked
+    Route::get('/linked', LinkedIndex::class)->name('linked.index');
+
     // Logout
     Route::post('/logout', [Dashboard::class, 'logout'])->name('logout');
 

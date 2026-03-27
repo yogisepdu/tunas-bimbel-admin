@@ -147,6 +147,8 @@
                     </p>
                 </div>
 
+                <!-- RIGHT SIDE -->
+                <div class="flex items-center gap-3">
                 <!-- BADGE -->
                 @php
                     $badgeMap = [
@@ -163,6 +165,14 @@
                     </span>
                 @endif
 
+                <!-- DELETE BUTTON -->
+                <button
+                    wire:click="delete({{ $set->id }})"
+                    class="text-red-600 hover:text-red-700 text-sm font-medium"
+                >
+                    Hapus
+                </button>
+                </div>
             </div>
         @empty
             <div class="text-center text-gray-500 text-sm py-6">

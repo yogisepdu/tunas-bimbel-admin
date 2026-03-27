@@ -66,8 +66,21 @@
                 </div>
 
                 <!-- OPTIONAL ACTION -->
-                <div class="text-xs text-gray-400">
-                    Section
+                <div class="flex items-center gap-3">
+
+                    <span class="text-xs text-gray-400">
+                        Section
+                    </span>
+
+                    <button
+                        wire:click="$dispatch('confirmDelete', { id: {{ $section->id }} })"
+                        wire:loading.attr="disabled"
+                        class="text-red-500 hover:text-red-600 text-xs font-medium"
+                    >
+                        <span wire:loading.remove>Hapus</span>
+                        <span wire:loading>Menghapus...</span>
+                    </button>
+
                 </div>
 
             </div>
