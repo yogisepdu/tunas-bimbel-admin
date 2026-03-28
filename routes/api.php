@@ -10,6 +10,8 @@ use App\Http\Controllers\Api\EBook\ChapterController;
 use App\Http\Controllers\Api\Progress\ProgressController;
 use App\Http\Controllers\Api\Quiz\QuizController;
 use App\Http\Controllers\Api\Quiz\QuizMetaController;
+use App\Http\Controllers\Api\Soal\SoalController;
+use App\Models\Linked;
 
 /*
 |--------------------------------------------------------------------------
@@ -54,5 +56,35 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/user', function (Request $request) {
         return $request->user();
     });
+
+    Route::get('/links/{name}', function ($name) {
+        $link = Linked::where('name', $name)->first();
+
+        if (!$link) {
+            return response()->json([
+                'message' => 'Link tidak ditemukan'
+            ], 404);
+        }
+
+        return response()->json([
+            'name' => $link->name,
+            'url' => $link->url,
+        ]);
+    });
+
+    // 🔥 SOAL
+    // 🔥 SECTION + SET
+    Route::get('/soal-sections', [SoalController::class, 'sections']);
+
+    Route::get('/soal-sections/{setId}', [SoalController::class, 'sectionsBySet']);
+
+    // 🔥 QUESTIONS
+    Route::get('/soal-sets/{id}/questions', [SoalController::class, 'questions']);
+
+    // 🔥 SOAL PROGRESS
+    Route::get('/soal-progress/{setId}', [SoalController::class, 'checkSoalProgress']);
+    Route::post('/soal-result', [SoalController::class, 'storeResult']);
+    // 🔥 LEADERBOARD
+    Route::get('/soal-leaderboard/{soalSetId}', [SoalController::class, 'leaderboard']);
 
 });
