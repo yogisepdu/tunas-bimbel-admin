@@ -21,13 +21,31 @@
                 <!-- NAMA -->
                 <select
                     wire:model.defer="link_name"
-                    class="px-4 py-2.5 rounded-lg text-sm bg-[#111827] border border-gray-600 text-white focus:ring-2 focus:ring-blue-500 focus:outline-none w-full"
+                    class="px-4 py-2.5 rounded-lg text-sm bg-[#111827] border border-gray-600 text-white w-full"
                 >
                     <option value="">-- Pilih Jenis Link --</option>
-                    <option value="peta_seleksi">Peta Seleksi</option>
-                    <option value="informasi_beasiswa">Informasi Beasiswa</option>
-                    <option value="informasi_kampus">Informasi Kampus</option>
-                    <option value="grup_mentoring">Grup Mentoring</option>
+
+                    {{-- Membership --}}
+                    <option value="bonus_premium">🎁 Bonus Premium</option>
+                    <option value="klaim_voucher">🏷️ Klaim Voucher</option>
+
+                    {{-- Support --}}
+                    <option value="faq">❓ FAQ / Bantuan</option>
+                    <option value="laporan">🚨 Laporan Masalah</option>
+                    <option value="saran">💡 Saran & Masukan</option>
+                    <option value="rating">⭐ Beri Nilai</option>
+
+                    {{-- Informasi --}}
+                    <option value="privacy_policy">🔒 Kebijakan Privasi</option>
+                    <option value="terms">📄 Syarat & Ketentuan</option>
+                    <option value="about">👥 Tentang Kami</option>
+                    <option value="license">ℹ️ Lisensi</option>
+
+                    {{-- Lama --}}
+                    <option value="peta_seleksi">📍 Peta Seleksi</option>
+                    <option value="informasi_beasiswa">🎓 Informasi Beasiswa</option>
+                    <option value="informasi_kampus">🏫 Informasi Kampus</option>
+                    <option value="grup_mentoring">👥 Grup Mentoring</option>
                 </select>
 
                 @error('link_name')
@@ -38,7 +56,7 @@
                 <input type="text"
                     wire:model.defer="link_url"
                     placeholder="https://..."
-                    class="px-4 py-2.5 rounded-lg text-sm bg-[#111827] border border-gray-600 text-white placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:outline-none w-full" />
+                    class="px-4 py-2.5 rounded-lg text-sm bg-[#111827] border border-gray-600 text-white w-full" />
 
                 @error('link_url')
                     <span class="text-red-400 text-xs mt-1 block">{{ $message }}</span>
@@ -49,7 +67,7 @@
             <button
                 type="submit"
                 wire:loading.attr="disabled"
-                class="bg-green-600 hover:bg-green-700 transition text-white px-5 py-2.5 rounded-lg text-sm font-medium shadow"
+                class="bg-green-600 hover:bg-green-700 text-white px-5 py-2.5 rounded-lg text-sm font-medium shadow"
             >
                 <span wire:loading.remove>+ Tambah Link</span>
                 <span wire:loading>Menyimpan...</span>
@@ -64,15 +82,30 @@
 
         <h2 class="text-lg font-semibold mb-4 text-white">Daftar Link</h2>
 
+        @php
+            $linkLabels = [
+                'bonus_premium' => '🎁 Bonus Premium',
+                'klaim_voucher' => '🏷️ Klaim Voucher',
+
+                'faq' => '❓ FAQ / Bantuan',
+                'laporan' => '🚨 Laporan Masalah',
+                'saran' => '💡 Saran & Masukan',
+                'rating' => '⭐ Beri Nilai',
+
+                'privacy_policy' => '🔒 Kebijakan Privasi',
+                'terms' => '📄 Syarat & Ketentuan',
+                'about' => '👥 Tentang Kami',
+                'license' => 'ℹ️ Lisensi',
+
+                'peta_seleksi' => '📍 Peta Seleksi',
+                'informasi_beasiswa' => '🎓 Informasi Beasiswa',
+                'informasi_kampus' => '🏫 Informasi Kampus',
+                'grup_mentoring' => '👥 Grup Mentoring',
+            ];
+        @endphp
+
         <div class="overflow-x-auto rounded-lg border border-gray-700">
-            @php
-                $linkLabels = [
-                    'peta_seleksi' => '📍 Peta Seleksi',
-                    'informasi_beasiswa' => '🎓 Informasi Beasiswa',
-                    'informasi_kampus' => '🏫 Informasi Kampus',
-                    'grup_mentoring' => '👥 Grup Mentoring',
-                ];
-            @endphp
+
             <table class="w-full text-sm">
 
                 <thead class="bg-[#111827] text-gray-400">

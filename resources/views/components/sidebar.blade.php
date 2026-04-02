@@ -137,6 +137,15 @@
                 class="hover:bg-zinc-800 hover:text-white data-[current]:bg-zinc-800 data-[current]:text-white font-medium">
                 Linked
             </flux:sidebar.item>
+            
+            <flux:sidebar.item
+                icon="bell"
+                href="{{ route('announcement.index') }}"
+                wire:navigate
+                :current="request()->routeIs('announcement*')"
+                class="hover:bg-zinc-800 hover:text-white data-[current]:bg-zinc-800 data-[current]:text-white font-medium">
+                Announcement
+            </flux:sidebar.item>
 
             <!-- Laporan -->
             <flux:sidebar.group expandable heading="Laporan" class="grid">

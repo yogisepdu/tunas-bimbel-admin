@@ -8,6 +8,7 @@ use App\Livewire\Class\Form\Edit;
 use App\Livewire\Dashboard;
 use App\Livewire\Kalender\Form\Index as FormIndex;
 use App\Livewire\Kalender\Index as KalenderIndex;
+use App\Livewire\Linked\AnnouncementController;
 use App\Livewire\Linked\Index as LinkedIndex;
 use App\Livewire\Pdf\Form\Create as PdfFormCreate;
 use App\Livewire\Pdf\Form\Edit as PdfFormEdit;
@@ -39,6 +40,7 @@ use Illuminate\Support\Facades\Route;
 use Maatwebsite\Excel\Facades\Excel;
 
 Route::get('/', Login::class)->name('login');
+Route::get('/register', Login::class)->name('login');
 
 Route::middleware('auth')->group(function () {
 
@@ -102,6 +104,11 @@ Route::middleware('auth')->group(function () {
     
     // Linked
     Route::get('/linked', LinkedIndex::class)->name('linked.index');
+
+    // Announcement
+    Route::get('/announcement', AnnouncementController::class)->name('announcement.index');
+    // Route::get('/announcement/create', AnnouncementController::class)->name('announcement.create');
+    // Route::get('/announcement/{id}/edit', AnnouncementController::class)->name('announcement.edit');
 
     // Logout
     Route::post('/logout', [Dashboard::class, 'logout'])->name('logout');

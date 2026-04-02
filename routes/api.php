@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\Announcement\AnnouncementController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\RateLimiter;
@@ -7,6 +8,7 @@ use Illuminate\Cache\RateLimiting\Limit;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\Calendar\CalendarController;
 use App\Http\Controllers\Api\EBook\ChapterController;
+use App\Http\Controllers\Api\ProfileController;
 use App\Http\Controllers\Api\Progress\ProgressController;
 use App\Http\Controllers\Api\Quiz\QuizController;
 use App\Http\Controllers\Api\Quiz\QuizMetaController;
@@ -32,6 +34,9 @@ RateLimiter::for('api', function (Request $request) {
 Route::post('/login', [AuthController::class, 'login']);
 
 Route::middleware('auth:sanctum')->group(function () {
+
+    Route::get('/profile', [ProfileController::class, 'me']);
+    Route::post('/profile', [ProfileController::class, 'update']);
     
     Route::get('/chapters', [ChapterController::class,'index']);
 
@@ -84,7 +89,11 @@ Route::middleware('auth:sanctum')->group(function () {
     // 🔥 SOAL PROGRESS
     Route::get('/soal-progress/{setId}', [SoalController::class, 'checkSoalProgress']);
     Route::post('/soal-result', [SoalController::class, 'storeResult']);
+
     // 🔥 LEADERBOARD
     Route::get('/soal-leaderboard/{soalSetId}', [SoalController::class, 'leaderboard']);
+
+    // 🔥 ANNOUNCEMENT
+    Route::get('/announcements', [AnnouncementController::class, 'index']);
 
 });
