@@ -33,6 +33,8 @@ RateLimiter::for('api', function (Request $request) {
 
 Route::post('/login', [AuthController::class, 'login']);
 
+Route::post('/register', [AuthController::class, 'register']);
+
 Route::middleware('auth:sanctum')->group(function () {
 
     Route::get('/profile', [ProfileController::class, 'me']);
