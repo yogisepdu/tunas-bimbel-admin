@@ -14,48 +14,80 @@ use App\Http\Controllers\Api\Quiz\QuizController;
 use App\Http\Controllers\Api\Quiz\QuizMetaController;
 use App\Http\Controllers\Api\Soal\SoalController;
 use App\Models\Linked;
+use App\Models\User;
+use Illuminate\Foundation\Auth\EmailVerificationRequest;
 
 /*
 |--------------------------------------------------------------------------
-| API Rate Limiter
+| RATE LIMIT
 |--------------------------------------------------------------------------
 */
-
 RateLimiter::for('api', function (Request $request) {
     return Limit::perMinute(60)->by($request->ip());
 });
 
 /*
 |--------------------------------------------------------------------------
-| API Routes
+| AUTH PUBLIC
 |--------------------------------------------------------------------------
 */
-
 Route::post('/login', [AuthController::class, 'login']);
-
 Route::post('/register', [AuthController::class, 'register']);
+Route::post('/resend-verification', [AuthController::class, 'resendVerification'])->middleware('throttle:3,1');
+Route::post('/forgot-password', [AuthController::class, 'forgotPassword']);
 
+/*
+|--------------------------------------------------------------------------
+| EMAIL VERIFICATION
+|--------------------------------------------------------------------------
+*/
+Route::get('/email/verify/{id}/{hash}', function (Request $request, $id, $hash) {
+
+    $user = User::find($id);
+
+    if (!$user) {
+        return response()->view('emails.verify-failed');
+    }
+
+    // 🔐 VALIDASI HASH
+    if (!hash_equals((string) $hash, sha1($user->getEmailForVerification()))) {
+        return response()->view('emails.verify-failed');
+    }
+
+    // ✅ SUDAH VERIFIED?
+    if ($user->hasVerifiedEmail()) {
+        return response()->view('emails.verify-success');
+    }
+
+    // ✅ VERIFY
+    $user->markEmailAsVerified();
+
+    return response()->view('emails.verify-success');
+
+})->middleware('signed')->name('verification.verify');
+
+/*
+|--------------------------------------------------------------------------
+| PROTECTED ROUTES
+|--------------------------------------------------------------------------
+*/
 Route::middleware('auth:sanctum')->group(function () {
 
     Route::get('/profile', [ProfileController::class, 'me']);
     Route::post('/profile', [ProfileController::class, 'update']);
-    
-    Route::get('/chapters', [ChapterController::class,'index']);
 
+    Route::get('/chapters', [ChapterController::class,'index']);
     Route::get('/chapters/{id}', [ChapterController::class,'show']);
 
     Route::post('/chapter-progress', [ProgressController::class, 'store']);
-
     Route::post('/quiz-result', [ProgressController::class, 'storeResult']);
 
     Route::get('/quiz-progress/{chapterId}', [ProgressController::class, 'checkQuizProgress']);
-
     Route::get('/leaderboard/{quizId}', [ProgressController::class, 'leaderboard']);
 
     Route::get('/calendar-events', [CalendarController::class, 'index']);
 
     Route::get('/chapter/{chapter}/quiz', [QuizController::class, 'questions']);
-
     Route::get('/quiz/{quiz}/meta', [QuizMetaController::class, 'show']);
 
     Route::post('/logout', [AuthController::class, 'logout']);
@@ -79,23 +111,17 @@ Route::middleware('auth:sanctum')->group(function () {
         ]);
     });
 
-    // 🔥 SOAL
-    // 🔥 SECTION + SET
+    // SOAL
     Route::get('/soal-sections', [SoalController::class, 'sections']);
-
     Route::get('/soal-sections/{setId}', [SoalController::class, 'sectionsBySet']);
 
-    // 🔥 QUESTIONS
     Route::get('/soal-sets/{id}/questions', [SoalController::class, 'questions']);
 
-    // 🔥 SOAL PROGRESS
     Route::get('/soal-progress/{setId}', [SoalController::class, 'checkSoalProgress']);
     Route::post('/soal-result', [SoalController::class, 'storeResult']);
 
-    // 🔥 LEADERBOARD
     Route::get('/soal-leaderboard/{soalSetId}', [SoalController::class, 'leaderboard']);
 
-    // 🔥 ANNOUNCEMENT
+    // ANNOUNCEMENT
     Route::get('/announcements', [AnnouncementController::class, 'index']);
-
 });
