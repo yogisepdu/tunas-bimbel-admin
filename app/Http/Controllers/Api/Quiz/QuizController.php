@@ -7,16 +7,31 @@ use App\Models\Chapter;
 use App\Models\Quiz;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\DB;
 
 class QuizController extends Controller
 {
-    //
     public function questions($chapterId)
     {
-        // ambil chapter
+        $user = auth()->user();
+
+        // 🔥 1. AMBIL CHAPTER DULU (WAJIB)
         $chapter = Chapter::findOrFail($chapterId);
 
-        // cari quiz berdasarkan class yang sama
+        // 🔥 2. CEK AKSES
+        $hasAccess = DB::table('user_packages')
+            ->join('package_classes', 'user_packages.package_id', '=', 'package_classes.package_id')
+            ->where('user_packages.user_id', $user->id)
+            ->where('package_classes.class_id', $chapter->class_id)
+            ->exists();
+
+        if (!$hasAccess) {
+            return response()->json([
+                'message' => 'Akses ditolak'
+            ], 403);
+        }
+
+        // 🔥 3. AMBIL QUIZ
         $quiz = Quiz::with(['questions','classRoom'])
             ->where('class_id', $chapter->class_id)
             ->firstOrFail();
@@ -29,7 +44,6 @@ class QuizController extends Controller
                 'subCategory' => null,
                 'text' => $q->question,
 
-                // 🔥 TAMBAHKAN IMAGE
                 'image' => $q->image ? Storage::url($q->image) : null,
 
                 'options' => [

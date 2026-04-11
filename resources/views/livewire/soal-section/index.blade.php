@@ -2,7 +2,7 @@
 
     <h1 class="text-xl font-bold mb-4">Soal Section</h1>
 
-    {{-- SUCCESS MESSAGE --}}
+    {{-- SUCCESS --}}
     @if (session()->has('success'))
         <div class="mb-4 p-3 text-sm text-green-700 bg-green-100 rounded-lg">
             {{ session('success') }}
@@ -12,7 +12,7 @@
     {{-- FORM --}}
     <form wire:submit.prevent="save" class="space-y-4">
 
-        <!-- TITLE -->
+        {{-- TITLE --}}
         <div>
             <label class="block mb-2 text-sm font-medium text-heading">
                 Nama Section
@@ -21,51 +21,69 @@
             <input 
                 type="text"
                 wire:model.defer="title"
-                placeholder="Contoh: Tes Kemampuan Dasar"
-                class="w-full px-3 py-2.5 text-sm border rounded-lg bg-neutral-secondary-medium border-default-medium focus:ring-brand focus:border-brand"
+                class="w-full px-3 py-2.5 text-sm border rounded-lg bg-neutral-secondary-medium border-default-medium"
             />
 
             @error('title')
-                <span class="text-red-500 text-sm mt-1 block">
-                    {{ $message }}
-                </span>
+                <span class="text-red-500 text-sm">{{ $message }}</span>
             @enderror
         </div>
 
-        <!-- BUTTON -->
+        {{-- CLASS SELECT 🔥 --}}
+        <div>
+            <label class="block mb-2 text-sm font-medium text-heading">
+                Pilih Kelas
+            </label>
+
+            <select 
+                wire:model="class_id"
+                class="w-full px-3 py-2.5 text-sm border rounded-lg bg-neutral-secondary-medium border-default-medium"
+            >
+                <option value="">-- Pilih Kelas --</option>
+
+                @foreach($classes as $class)
+                    <option value="{{ $class->id }}">
+                        {{ $class->name }}
+                    </option>
+                @endforeach
+            </select>
+
+            @error('class_id')
+                <span class="text-red-500 text-sm">{{ $message }}</span>
+            @enderror
+        </div>
+
+        {{-- BUTTON --}}
         <button 
             type="submit"
             wire:loading.attr="disabled"
-            class="w-full text-white bg-brand hover:bg-brand-strong focus:ring-4 focus:ring-brand-medium font-medium rounded-lg text-sm px-4 py-2.5 transition"
+            class="w-full text-white bg-brand hover:bg-brand-strong rounded-lg text-sm px-4 py-2.5"
         >
-
-            <span wire:loading.remove wire:target="save">
-                + Tambah Section
-            </span>
-
-            <span wire:loading wire:target="save">
-                Menyimpan...
-            </span>
-
+            <span wire:loading.remove>+ Tambah Section</span>
+            <span wire:loading>Menyimpan...</span>
         </button>
 
     </form>
 
-    {{-- LIST SECTION --}}
+    {{-- LIST --}}
     <div class="mt-6 space-y-3">
 
         @forelse($sections as $section)
-            <div class="p-4 rounded-xl border border-gray-200 bg-white shadow-sm flex items-center justify-between">
+            <div class="p-4 rounded-xl border bg-white shadow-sm flex items-center justify-between">
 
-                <!-- TITLE -->
+                {{-- INFO --}}
                 <div>
                     <p class="text-sm font-semibold text-gray-800">
                         {{ $section->title }}
                     </p>
 
+                    {{-- 🔥 TAMPILKAN KELAS --}}
+                    <p class="text-xs text-gray-400">
+                        {{ $section->classRoom->name ?? '-' }}
+                    </p>
                 </div>
 
-                <!-- OPTIONAL ACTION -->
+                {{-- ACTION --}}
                 <div class="flex items-center gap-3">
 
                     <span class="text-xs text-gray-400">
@@ -74,11 +92,9 @@
 
                     <button
                         wire:click="$dispatch('confirmDelete', { id: {{ $section->id }} })"
-                        wire:loading.attr="disabled"
-                        class="text-red-500 hover:text-red-600 text-xs font-medium"
+                        class="text-red-500 hover:text-red-600 text-xs"
                     >
-                        <span wire:loading.remove>Hapus</span>
-                        <span wire:loading>Menghapus...</span>
+                        Hapus
                     </button>
 
                 </div>

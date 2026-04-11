@@ -59,6 +59,9 @@ use App\Livewire\Kalender\Form\Index as FormIndex;
 // 🔥 LINKED
 use App\Livewire\Linked\Index as LinkedIndex;
 use App\Livewire\Linked\AnnouncementController;
+use App\Livewire\Packages\Form\Create as PackagesFormCreate;
+use App\Livewire\Packages\Form\Edit as PackagesFormEdit;
+use App\Livewire\Packages\Index as PackagesIndex;
 
 // ======================
 // 🔓 PUBLIC ROUTES
@@ -148,6 +151,11 @@ Route::middleware('auth')->group(function () {
 
     // ANNOUNCEMENT
     Route::get('/announcement', AnnouncementController::class)->name('announcement.index');
+
+    // ACTIVITIES
+    Route::get('/packages', PackagesIndex::class)->name('packages.index');
+    Route::get('/packages/create', PackagesFormCreate::class)->name('packages.create');
+    Route::get('/packages/{id}/edit', PackagesFormEdit::class)->name('packages.edit');
 
     // LOGOUT
     Route::post('/logout', [Dashboard::class, 'logout'])->name('logout');

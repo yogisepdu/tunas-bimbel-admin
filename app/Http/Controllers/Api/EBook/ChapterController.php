@@ -5,39 +5,38 @@ namespace App\Http\Controllers\Api\EBook;
 use App\Http\Controllers\Controller;
 use App\Models\Chapter;
 use App\Models\Quiz;
-use App\Models\UserChapterProgress;
 use App\Models\UserLearningProgress;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class ChapterController extends Controller
 {
-    //
     public function index()
     {
+        $user = auth()->user();
+
         $icons = [
-            'book',
-            'library',
-            'calculator',
-            'flask',
-            'planet',
-            'school',
-            'reader',
-            'create',
-            'bulb'
+            'book','library','calculator','flask','planet',
+            'school','reader','create','bulb'
         ];
 
         $colors = [
-            '#F59E0B',
-            '#8B5CF6',
-            '#22C55E',
-            '#3B82F6',
-            '#EF4444',
-            '#06B6D4',
-            '#6366F1'
+            '#F59E0B','#8B5CF6','#22C55E','#3B82F6',
+            '#EF4444','#06B6D4','#6366F1'
         ];
 
-        $chapters = Chapter::with([
+        // 🔥 FILTER BERDASARKAN PACKAGE USER
+        $chapters = Chapter::whereIn('class_id', function ($query) use ($user) {
+            $query->select('class_id')
+                ->from('package_classes')
+                ->whereIn('package_id', function ($q) use ($user) {
+                    $q->select('package_id')
+                        ->from('user_packages')
+                        ->where('user_id', $user->id);
+                });
+        })
+        ->with([
             'classRoom:id,name',
             'classRoom.quizzes:id,class_id,duration',
             'materiPdf:id,chapter_id,pdf_url'
@@ -49,18 +48,11 @@ class ChapterController extends Controller
         $data = $chapters->map(function ($chapter) use ($icons, $colors) {
 
             $pdf = $chapter->materiPdf->first();
-
-            // total durasi quiz dari class yang sama
             $totalDuration = $chapter->classRoom->quizzes->sum('duration');
             $duration = sprintf('%02d:00', $totalDuration);
 
             $className = $chapter->classRoom->name;
-
-            // generate index dari nama kelas
             $hash = crc32($className);
-
-            $icon = $icons[$hash % count($icons)];
-            $color = $colors[$hash % count($colors)];
 
             return [
                 'id' => (string) $chapter->id,
@@ -68,8 +60,8 @@ class ChapterController extends Controller
                 'subject' => $className,
                 'date' => Carbon::parse($chapter->created_at)->translatedFormat('l, d F Y'),
                 'duration' => $duration,
-                'icon' => $icon,
-                'color' => $color,
+                'icon' => $icons[$hash % count($icons)],
+                'color' => $colors[$hash % count($colors)],
                 'type' => 'materi',
                 'mapel' => $className,
                 'pdfUrl' => $pdf ? asset('storage/'.$pdf->pdf_url) : null
@@ -84,20 +76,32 @@ class ChapterController extends Controller
 
     public function show($id)
     {
+        $user = auth()->user();
+
         $chapter = Chapter::with([
             'videos:id,chapter_id,title,subtitle,youtube_id',
             'materiPdf:id,chapter_id,title,pdf_url'
         ])->findOrFail($id);
 
-        $progress = UserLearningProgress::where('user_id', auth()->id())
-                ->where('chapter_id', $chapter->id)
-                ->get();
+        // 🔥 PROTEKSI AKSES
+        $hasAccess = DB::table('user_packages')
+            ->join('package_classes', 'user_packages.package_id', '=', 'package_classes.package_id')
+            ->where('user_packages.user_id', $user->id)
+            ->where('package_classes.class_id', $chapter->class_id)
+            ->exists();
+
+        if (!$hasAccess) {
+            return response()->json([
+                'message' => 'Kamu belum membeli paket ini'
+            ], 403);
+        }
+
+        $progress = UserLearningProgress::where('user_id', $user->id)
+            ->where('chapter_id', $chapter->id)
+            ->get();
 
         $items = [];
 
-        // =========================
-        // Videos
-        // =========================
         foreach ($chapter->videos as $video) {
             $isDone = $progress->where('video_id', $video->id)->first();
 
@@ -108,14 +112,10 @@ class ChapterController extends Controller
                 'title' => $video->title,
                 'subtitle' => $video->subtitle,
                 'youtubeId' => $video->youtube_id,
-                'duration' => null,
                 'isDone' => $isDone ? true : false
             ];
         }
 
-        // =========================
-        // Rangkuman PDF
-        // =========================
         foreach ($chapter->materiPdf as $pdf) {
             $isDone = $progress->where('pdf_id', $pdf->id)->first();
 
@@ -129,9 +129,6 @@ class ChapterController extends Controller
             ];
         }
 
-        // =========================
-        // Quiz
-        // =========================
         $quizzes = Quiz::withCount('questions')
             ->where('class_id', $chapter->class_id)
             ->get();

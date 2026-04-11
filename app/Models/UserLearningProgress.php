@@ -16,4 +16,9 @@ class UserLearningProgress extends Model
         'status',
         'progress_percent'
     ];
+
+    public function chapter()
+    {
+        return $this->belongsTo(Chapter::class);
+    }
 }

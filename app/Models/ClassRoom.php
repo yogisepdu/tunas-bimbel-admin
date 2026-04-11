@@ -24,6 +24,16 @@ class ClassRoom extends Model
         return $this->hasMany(Quiz::class, 'class_id');
     }
 
+    public function packages()
+    {
+        return $this->belongsToMany(
+            Packages::class,
+            'package_classes',
+            'class_id',
+            'package_id'
+        );
+    }
+
     protected static function booted()
     {
         static::deleting(function ($class) {

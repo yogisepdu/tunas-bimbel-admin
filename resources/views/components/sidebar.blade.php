@@ -32,10 +32,19 @@
                     Teacher
                 </flux:sidebar.item>
 
+                
             </flux:sidebar.group>
-
+            
             <!-- Materi -->
             <flux:sidebar.group expandable heading="Materi" class="grid">
+                <flux:sidebar.item
+                    icon="gift"
+                    href="{{ route('packages.index') }}"
+                    wire:navigate
+                    :current="request()->routeIs('packages*')"
+                    class="hover:bg-zinc-800 hover:text-white data-[current]:bg-zinc-800 data-[current]:text-white font-medium">
+                    Packages
+                </flux:sidebar.item>
 
                 <flux:sidebar.item
                     icon="book-open"

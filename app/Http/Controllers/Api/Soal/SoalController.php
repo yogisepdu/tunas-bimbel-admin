@@ -8,22 +8,33 @@ use App\Models\SoalSection;
 use App\Models\SoalSet;
 use App\Models\UserSoalProgress;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class SoalController extends Controller
 {
     //
     // 🔥 SECTION + SET
-    public function sections($soalId = null)
+    public function sections()
     {
-        $sections = SoalSection::with('sets')->get();
+        $user = auth()->user();
+
+        $sections = SoalSection::whereIn('class_id', function ($query) use ($user) {
+            $query->select('class_id')
+                ->from('package_classes')
+                ->whereIn('package_id', function ($q) use ($user) {
+                    $q->select('package_id')
+                        ->from('user_packages')
+                        ->where('user_id', $user->id);
+                });
+        })
+        ->with('sets')
+        ->get();
 
         return response()->json(
             $sections->map(function ($section) {
 
-                // 🔥 TOTAL SOAL PER SECTION
                 $totalSoal = $section->sets->sum('total_questions');
 
-                // 🔥 ICON DINAMIS BERDASARKAN TITLE
                 $icon = match (strtolower($section->title)) {
                     'tiu' => 'analytics',
                     'twk' => 'book',
@@ -31,7 +42,6 @@ class SoalController extends Controller
                     default => 'pencil',
                 };
 
-                // 🔥 COLOR DINAMIS
                 $color = match (strtolower($section->title)) {
                     'tiu' => '#3B82F6',
                     'twk' => '#10B981',
@@ -42,8 +52,6 @@ class SoalController extends Controller
                 return [
                     'id' => $section->id,
                     'title' => $section->title,
-
-                    // 🔥 TAMBAHAN
                     'total_soal' => $totalSoal,
                     'date' => now()->translatedFormat('l, d F Y'),
                     'icon' => $icon,

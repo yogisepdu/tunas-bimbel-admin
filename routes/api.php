@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\ActivitiesController;
 use App\Http\Controllers\Api\Announcement\AnnouncementController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -8,6 +9,7 @@ use Illuminate\Cache\RateLimiting\Limit;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\Calendar\CalendarController;
 use App\Http\Controllers\Api\EBook\ChapterController;
+use App\Http\Controllers\Api\Package\UserPackageController;
 use App\Http\Controllers\Api\ProfileController;
 use App\Http\Controllers\Api\Progress\ProgressController;
 use App\Http\Controllers\Api\Quiz\QuizController;
@@ -122,6 +124,13 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::get('/soal-leaderboard/{soalSetId}', [SoalController::class, 'leaderboard']);
 
+    // PACKAGES
+    Route::get('/packages', [UserPackageController::class, 'index']);
+    Route::post('/buy-package', [UserPackageController::class, 'buy']);
+
     // ANNOUNCEMENT
     Route::get('/announcements', [AnnouncementController::class, 'index']);
+
+    // ACTIVITIES
+    Route::get('/activities', [ActivitiesController::class, 'index']);
 });

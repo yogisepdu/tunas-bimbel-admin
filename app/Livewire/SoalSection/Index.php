@@ -3,28 +3,33 @@
 namespace App\Livewire\SoalSection;
 
 use App\Models\SoalSection;
+use App\Models\ClassRoom;
 use Livewire\Component;
 use Livewire\Attributes\On;
 
 class Index extends Component
 {
     public $title;
+    public $class_id;
 
     public function save()
     {
         $this->validate([
-            'title' => 'required'
+            'title' => 'required|string|max:255',
+            'class_id' => 'required|exists:classes,id'
         ]);
 
         SoalSection::create([
-            'title' => $this->title
+            'title' => $this->title,
+            'class_id' => $this->class_id
         ]);
 
-        $this->reset('title');
+        $this->reset(['title', 'class_id']);
+
         session()->flash('success', 'Section berhasil ditambahkan');
     }
 
-    #[On('deleteClass')]
+    #[On('deleteSection')]
     public function delete($id)
     {
         $section = SoalSection::with('sets.questions.options')->findOrFail($id);
@@ -32,28 +37,25 @@ class Index extends Component
         foreach ($section->sets as $set) {
 
             foreach ($set->questions as $question) {
-                // hapus options
                 $question->options()->delete();
-
-                // hapus question
                 $question->delete();
             }
 
-            // hapus set
             $set->delete();
         }
 
-        // hapus section
         $section->delete();
-        $this->dispatch('deleted');
 
         session()->flash('success', 'Section & semua data terkait berhasil dihapus');
+
+        $this->dispatch('deleted');
     }
 
     public function render()
     {
-        return view('livewire.soal-section.index',[
-            'sections' => SoalSection::latest()->get()
+        return view('livewire.soal-section.index', [
+            'sections' => SoalSection::with('classRoom')->latest()->get(),
+            'classes' => ClassRoom::all()
         ])->layout('layouts.admin');
     }
 }

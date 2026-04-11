@@ -76,4 +76,14 @@ class User extends Authenticatable implements MustVerifyEmail
     {
         $this->notify(new ResetPasswordNotification($token));
     }
+
+    public function packages()
+    {
+        return $this->belongsToMany(
+            Packages::class,
+            'user_packages',
+            'user_id',
+            'package_id'
+        );
+    }
 }

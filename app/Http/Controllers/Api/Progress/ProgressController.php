@@ -4,13 +4,11 @@ namespace App\Http\Controllers\Api\Progress;
 
 use App\Http\Controllers\Controller;
 use App\Models\QuizResult;
-use App\Models\UserChapterProgress;
 use App\Models\UserLearningProgress;
 use Illuminate\Http\Request;
 
 class ProgressController extends Controller
 {
-    //
     public function store(Request $request)
     {
         $data = $request->validate([
@@ -20,18 +18,42 @@ class ProgressController extends Controller
             'quiz_id' => 'nullable',
         ]);
 
-        $progress = UserLearningProgress::updateOrCreate(
-            [
-                'user_id' => auth()->id(),
-                'chapter_id' => $data['chapter_id'],
-                'video_id' => $data['video_id'] ?? null,
-                'pdf_id' => $data['pdf_id'] ?? null,
-                'quiz_id' => $data['quiz_id'] ?? null,
-            ],
-            [
-                'status' => true
-            ]
-        );
+        $userId = auth()->id();
+
+        // 🔥 AMBIL DATA PROGRESS YANG SUDAH ADA
+        $progress = UserLearningProgress::firstOrNew([
+            'user_id' => $userId,
+            'chapter_id' => $data['chapter_id'],
+        ]);
+
+        // 🔥 UPDATE FIELD TANPA MENGHAPUS YANG LAMA
+        if (!empty($data['video_id'])) {
+            $progress->video_id = $data['video_id'];
+        }
+
+        if (!empty($data['pdf_id'])) {
+            $progress->pdf_id = $data['pdf_id'];
+        }
+
+        if (!empty($data['quiz_id'])) {
+            $progress->quiz_id = $data['quiz_id'];
+        }
+
+        // 🔥 HITUNG PROGRESS
+        $done = 0;
+
+        if ($progress->video_id) $done++;
+        if ($progress->pdf_id) $done++;
+        if ($progress->quiz_id) $done++;
+
+        $total = 3;
+
+        $progress->progress_percent = intval(($done / $total) * 100);
+
+        // 🔥 STATUS
+        $progress->status = $progress->progress_percent >= 100;
+
+        $progress->save();
 
         return response()->json([
             'success' => true,
@@ -49,7 +71,7 @@ class ProgressController extends Controller
             'correct' => 'required|integer',
             'wrong' => 'required|integer',
             'empty' => 'required|integer',
-            'answers' => 'nullable|array', // 🔥 tambah
+            'answers' => 'nullable|array',
         ]);
 
         $result = QuizResult::create([
@@ -59,7 +81,7 @@ class ProgressController extends Controller
             'correct' => $data['correct'],
             'wrong' => $data['wrong'],
             'empty' => $data['empty'],
-            'answers' => json_encode($data['answers']), // 🔥 simpan
+            'answers' => json_encode($data['answers']),
         ]);
 
         return response()->json([
@@ -92,12 +114,11 @@ class ProgressController extends Controller
             'has_done' => true,
             'result' => [
                 ...$result->toArray(),
-                'answers' => json_decode($result->answers, true), // 🔥 FIX
+                'answers' => json_decode($result->answers, true),
             ]
         ]);
     }
 
-    // 🔥 fitur baru: leaderboard
     public function leaderboard($quizId)
     {
         $results = QuizResult::with('user')
