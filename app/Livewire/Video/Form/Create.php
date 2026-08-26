@@ -2,9 +2,8 @@
 
 namespace App\Livewire\Video\Form;
 
-use App\Models\Chapter;
-use App\Models\ClassRoom;
 use App\Models\Video;
+use App\Support\ClassAccess;
 use Livewire\Component;
 
 class Create extends Component
@@ -15,34 +14,77 @@ class Create extends Component
     public $subtitle;
     public $youtube_id;
 
+    public function updatedClassId()
+    {
+        $this->reset('chapter_id');
+    }
+
     public function save()
     {
-        $this->validate([
-            'chapter_id' => 'required',
-            'title' => 'required',
-            'subtitle' => 'nullable',
-            'youtube_id' => 'required'
+        $validated = $this->validate([
+            'class_id' => 'required|integer|exists:classes,id',
+            'chapter_id' => 'required|integer|exists:chapters,id',
+            'title' => 'required|string|max:255',
+            'subtitle' => 'nullable|string|max:255',
+            'youtube_id' => 'required|string|max:255',
         ]);
+
+        $class = ClassAccess::classOrFail(
+            (int) $validated['class_id']
+        );
+
+        $chapter = ClassAccess::chapterOrFail(
+            (int) $validated['chapter_id']
+        );
+
+        if ((int) $chapter->class_id !== (int) $class->id) {
+            $this->addError(
+                'chapter_id',
+                'Sub materi tidak sesuai dengan kelas yang dipilih.'
+            );
+
+            return;
+        }
 
         Video::create([
-            'chapter_id' => $this->chapter_id,
-            'title' => $this->title,
-            'subtitle' => $this->subtitle,
-            'youtube_id' => $this->youtube_id
+            'chapter_id' => $chapter->id,
+            'title' => $validated['title'],
+            'subtitle' => $validated['subtitle'] ?? null,
+            'youtube_id' => $validated['youtube_id'],
         ]);
 
-        session()->flash('success','Video berhasil dibuat');
+        session()->flash(
+            'success',
+            'Video berhasil dibuat'
+        );
 
-        return $this->redirect(route('video.index'), navigate: true);
+        return $this->redirect(
+            route('video.index'),
+            navigate: true
+        );
     }
 
     public function render()
     {
-        return view('livewire.video.form.create',[
-        'classes' => ClassRoom::all(),
-        'chapters' => $this->class_id
-            ? Chapter::where('class_id',$this->class_id)->get()
-            : []
-    ])->layout('layouts.admin');
+        $classes = ClassAccess::classes()
+            ->orderBy('name')
+            ->get();
+
+        $chapters = collect();
+
+        if ($this->class_id) {
+            $class = ClassAccess::classOrFail(
+                (int) $this->class_id
+            );
+
+            $chapters = $class->chapters()
+                ->orderBy('title')
+                ->get();
+        }
+
+        return view('livewire.video.form.create', [
+            'classes' => $classes,
+            'chapters' => $chapters,
+        ])->layout('layouts.admin');
     }
 }

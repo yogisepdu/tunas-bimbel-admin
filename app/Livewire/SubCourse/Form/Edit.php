@@ -2,13 +2,11 @@
 
 namespace App\Livewire\SubCourse\Form;
 
-use App\Models\Chapter;
-use App\Models\ClassRoom;
+use App\Support\ClassAccess;
 use Livewire\Component;
 
 class Edit extends Component
 {
-
     public $chapterId;
     public $class_id;
     public $title;
@@ -16,7 +14,9 @@ class Edit extends Component
 
     public function mount($id)
     {
-        $chapter = Chapter::findOrFail($id);
+        $chapter = ClassAccess::chapterOrFail(
+            (int) $id
+        );
 
         $this->chapterId = $chapter->id;
         $this->class_id = $chapter->class_id;
@@ -26,27 +26,45 @@ class Edit extends Component
 
     public function update()
     {
-        $this->validate([
-            'class_id' => 'required|exists:classes,id',
+        $validated = $this->validate([
+            'class_id' => 'required|integer|exists:classes,id',
             'title' => 'required|string|max:255',
-            'description' => 'nullable|string'
+            'description' => 'nullable|string',
         ]);
 
-        Chapter::findOrFail($this->chapterId)->update([
-            'class_id' => $this->class_id,
-            'title' => $this->title,
-            'description' => $this->description
+        $chapter = ClassAccess::chapterOrFail(
+            (int) $this->chapterId
+        );
+
+        $class = ClassAccess::classOrFail(
+            (int) $validated['class_id']
+        );
+
+        $chapter->update([
+            'class_id' => $class->id,
+            'title' => $validated['title'],
+            'description' => $validated['description'] ?? null,
         ]);
 
-        session()->flash('success', 'Chapter berhasil diperbarui');
+        session()->flash(
+            'success',
+            'Chapter berhasil diperbarui'
+        );
 
-        return $this->redirect(route('sub-course.index'), navigate: true);
+        return $this->redirect(
+            route('sub-course.index'),
+            navigate: true
+        );
     }
 
     public function render()
     {
+        $classes = ClassAccess::classes()
+            ->orderBy('name')
+            ->get();
+
         return view('livewire.sub-course.form.edit', [
-            'classes' => ClassRoom::orderBy('name')->get()
+            'classes' => $classes,
         ])->layout('layouts.admin');
     }
 }

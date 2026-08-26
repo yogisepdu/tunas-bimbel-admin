@@ -34,6 +34,16 @@ class ClassRoom extends Model
         );
     }
 
+    public function teachers()
+    {
+        return $this->belongsToMany(
+            Teacher::class,
+            'class_teacher',
+            'class_id',
+            'teacher_id'
+        )->withTimestamps();
+    }
+
     protected static function booted()
     {
         static::deleting(function ($class) {
@@ -54,7 +64,6 @@ class ClassRoom extends Model
 
                 $chapter->delete();
             }
-
         });
     }
 }

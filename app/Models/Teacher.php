@@ -16,6 +16,16 @@ class Teacher extends Model
         'bio'
     ];
 
+    public function classes()
+    {
+        return $this->belongsToMany(
+            ClassRoom::class,
+            'class_teacher',
+            'teacher_id',
+            'class_id'
+        )->withTimestamps();
+    }
+
     public function user()
     {
         return $this->belongsTo(User::class);

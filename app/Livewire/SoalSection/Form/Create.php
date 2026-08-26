@@ -5,6 +5,7 @@ namespace App\Livewire\SoalSection\Form;
 use App\Models\SoalOption;
 use App\Models\SoalQuestion;
 use App\Models\SoalSet;
+use App\Support\ClassAccess;
 use Illuminate\Support\Facades\DB;
 use Livewire\Component;
 
@@ -21,8 +22,10 @@ class Create extends Component
         'D' => '',
     ];
 
-    // 🔥 RESET OPTIONS DEFAULT
-    private function resetOptions()
+    /**
+     * Mengembalikan pilihan jawaban ke kondisi awal.
+     */
+    private function resetOptions(): void
     {
         $this->options = [
             'A' => '',
@@ -34,29 +37,67 @@ class Create extends Component
 
     public function save()
     {
-        $this->validate([
-            'soal_set_id' => 'required|exists:soal_sets,id',
-            'question' => 'required|string',
-            'correct_answer' => 'required|in:A,B,C,D',
-            'options.A' => 'required|string',
-            'options.B' => 'required|string',
-            'options.C' => 'required|string',
-            'options.D' => 'required|string',
+        $validated = $this->validate([
+            'soal_set_id' => [
+                'required',
+                'integer',
+                'exists:soal_sets,id',
+            ],
+            'question' => [
+                'required',
+                'string',
+            ],
+            'correct_answer' => [
+                'required',
+                'in:A,B,C,D',
+            ],
+            'options.A' => [
+                'required',
+                'string',
+            ],
+            'options.B' => [
+                'required',
+                'string',
+            ],
+            'options.C' => [
+                'required',
+                'string',
+            ],
+            'options.D' => [
+                'required',
+                'string',
+            ],
         ]);
 
+        /*
+         * Memeriksa apakah set TryOut dapat diakses user.
+         *
+         * Administrator dan admin:
+         * - Dapat mengakses seluruh set.
+         *
+         * Teacher:
+         * - Hanya dapat mengakses set dari kelas
+         *   yang ditugaskan kepadanya.
+         */
+        $set = ClassAccess::setOrFail(
+            (int) $validated['soal_set_id']
+        );
+
         try {
-            DB::transaction(function () {
-
-                // 🔥 TRIM DATA
-                $question = trim($this->question);
-
+            DB::transaction(function () use ($validated, $set) {
+                /*
+                 * Membuat pertanyaan TryOut.
+                 */
                 $soal = SoalQuestion::create([
-                    'soal_set_id' => $this->soal_set_id,
-                    'question' => $question,
-                    'correct_answer' => $this->correct_answer,
+                    'soal_set_id' => $set->id,
+                    'question' => trim($validated['question']),
+                    'correct_answer' => $validated['correct_answer'],
                 ]);
 
-                foreach ($this->options as $key => $text) {
+                /*
+                 * Membuat pilihan jawaban A, B, C, dan D.
+                 */
+                foreach ($validated['options'] as $key => $text) {
                     SoalOption::create([
                         'soal_question_id' => $soal->id,
                         'key' => $key,
@@ -64,34 +105,78 @@ class Create extends Component
                     ]);
                 }
 
-                // 🔥 SAFE INCREMENT
-                $set = SoalSet::find($this->soal_set_id);
-                if ($set) {
-                    $set->increment('total_questions');
-                }
+                /*
+                 * Menambahkan jumlah soal pada set.
+                 */
+                $set->increment('total_questions');
             });
 
-            // 🔥 RESET FORM
-            $this->reset(['question', 'soal_set_id']);
+            /*
+             * Mengosongkan form setelah berhasil.
+             */
+            $this->reset([
+                'question',
+                'soal_set_id',
+            ]);
+
             $this->resetOptions();
+
             $this->correct_answer = 'A';
 
-            session()->flash('success', 'Soal berhasil ditambahkan');
+            session()->flash(
+                'success',
+                'Soal berhasil ditambahkan.'
+            );
 
-        } catch (\Throwable $e) {
-            session()->flash('error', 'Gagal menyimpan soal');
-            logger()->error($e);
+            return $this->redirect(
+                route('soal-question.index'),
+                navigate: true
+            );
+        } catch (\Throwable $exception) {
+            /*
+             * Simpan detail error pada log Laravel.
+             */
+            report($exception);
+
+            session()->flash(
+                'error',
+                'Gagal menyimpan soal. Silakan coba kembali.'
+            );
+
+            /*
+             * Tetap berada pada halaman form jika gagal.
+             */
+            return null;
         }
-
-        session()->flash('success','Soal berhasil ditambahkan');
-
-        return $this->redirect(route('soal-question.index'), navigate: true);
     }
 
     public function render()
     {
+        /*
+         * Mengambil ID kelas sesuai hak akses user.
+         */
+        $classIds = ClassAccess::classIds();
+
+        /*
+         * Filter set melalui:
+         *
+         * SoalSet -> SoalSection -> ClassRoom
+         */
+        $sets = SoalSet::query()
+            ->whereHas('section', function ($query) use ($classIds) {
+                $query->whereIn(
+                    'class_id',
+                    $classIds
+                );
+            })
+            ->with([
+                'section.classRoom',
+            ])
+            ->orderBy('title')
+            ->get();
+
         return view('livewire.soal-section.form.create', [
-            'sets' => SoalSet::with('section')->get()
+            'sets' => $sets,
         ])->layout('layouts.admin');
     }
 }

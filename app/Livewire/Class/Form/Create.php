@@ -3,31 +3,80 @@
 namespace App\Livewire\Class\Form;
 
 use App\Models\ClassRoom;
+use App\Models\Teacher;
+use App\Support\ClassAccess;
+use Illuminate\Support\Facades\DB;
 use Livewire\Component;
 
 class Create extends Component
 {
-    public $name;
-    public $description;
+    public $name = '';
+    public $description = '';
+
+    public array $teacher_ids = [];
 
     public function save()
     {
-        $this->validate([
-            'name' => 'required|string|max:255',
-            'description' => 'nullable|string'
+        ClassAccess::ensureManager();
+
+        $validated = $this->validate([
+            'name' => [
+                'required',
+                'string',
+                'max:255',
+            ],
+            'description' => [
+                'nullable',
+                'string',
+            ],
+            'teacher_ids' => [
+                'nullable',
+                'array',
+            ],
+            'teacher_ids.*' => [
+                'integer',
+                'exists:teachers,id',
+            ],
         ]);
 
-        ClassRoom::create([
-            'name' => $this->name,
-            'description' => $this->description
-        ]);
+        DB::transaction(function () use ($validated) {
+            $class = ClassRoom::create([
+                'name' => trim($validated['name']),
+                'description' =>
+                $validated['description'] ?: null,
+            ]);
 
-        session()->flash('success', 'Class berhasil dibuat');
+            $class->teachers()->sync(
+                $validated['teacher_ids'] ?? []
+            );
+        });
 
-        return $this->redirect(route('course.index'), navigate: true);
+        session()->flash(
+            'success',
+            'Kelas dan penugasan teacher berhasil dibuat.'
+        );
+
+        return $this->redirect(
+            route('course.index'),
+            navigate: true
+        );
     }
+
     public function render()
     {
-        return view('livewire.class.form.create')->layout('layouts.admin');
+        ClassAccess::ensureManager();
+
+        $teachers = Teacher::query()
+            ->whereHas('user', function ($query) {
+                $query->where('role', 'teacher');
+            })
+            ->with('user')
+            ->get()
+            ->sortBy('user.name');
+
+        return view(
+            'livewire.class.form.create',
+            compact('teachers')
+        )->layout('layouts.admin');
     }
 }

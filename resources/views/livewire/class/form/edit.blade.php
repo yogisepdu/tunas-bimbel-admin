@@ -2,36 +2,68 @@
 
     <!-- NAMA KELAS -->
     <div class="mb-6">
-        <label class="block mb-2.5 text-sm font-medium text-heading">
+        <label class="text-heading mb-2.5 block text-sm font-medium">
             Nama Kelas
         </label>
 
-        <input 
-            type="text"
-            wire:model.defer="name"
-            class="bg-neutral-secondary-medium border border-default-medium text-heading text-sm rounded-base focus:ring-brand focus:border-brand block w-full px-3 py-2.5 shadow-xs"
-            placeholder="Masukkan nama kelas" />
+        <input
+            class="bg-neutral-secondary-medium border-default-medium text-heading rounded-base focus:ring-brand focus:border-brand shadow-xs block w-full border px-3 py-2.5 text-sm"
+            placeholder="Masukkan nama kelas" type="text" wire:model.defer="name" />
 
         @error('name')
-            <span class="text-red-500 text-sm">{{ $message }}</span>
+            <span class="text-sm text-red-500">{{ $message }}</span>
         @enderror
     </div>
 
 
     <!-- DESKRIPSI KELAS -->
     <div class="mb-6">
-        <label class="block mb-2.5 text-sm font-medium text-heading">
+        <label class="text-heading mb-2.5 block text-sm font-medium">
             Deskripsi Kelas
         </label>
 
         <textarea
-            wire:model.defer="description"
-            rows="4"
-            class="bg-neutral-secondary-medium border border-default-medium text-heading text-sm rounded-base focus:ring-brand focus:border-brand block w-full px-3 py-2.5 shadow-xs"
-            placeholder="Masukkan deskripsi kelas"></textarea>
+            class="bg-neutral-secondary-medium border-default-medium text-heading rounded-base focus:ring-brand focus:border-brand shadow-xs block w-full border px-3 py-2.5 text-sm"
+            placeholder="Masukkan deskripsi kelas" rows="4" wire:model.defer="description"></textarea>
 
         @error('description')
-            <span class="text-red-500 text-sm">{{ $message }}</span>
+            <span class="text-sm text-red-500">{{ $message }}</span>
+        @enderror
+    </div>
+
+    <div class="mb-6">
+        <label class="text-heading mb-2.5 block text-sm font-medium">
+            Teacher yang Mengajar
+        </label>
+
+        <div class="grid grid-cols-1 gap-3 md:grid-cols-2">
+            @forelse ($teachers as $teacher)
+                <label
+                    class="border-default-medium bg-neutral-secondary-medium flex cursor-pointer items-center gap-3 rounded-lg border p-3">
+                    <input class="rounded border-gray-300" type="checkbox" value="{{ $teacher->id }}"
+                        wire:model="teacher_ids">
+
+                    <div>
+                        <p class="text-heading font-medium">
+                            {{ $teacher->user->name }}
+                        </p>
+
+                        <p class="text-xs text-gray-500">
+                            {{ $teacher->user->email }}
+                        </p>
+                    </div>
+                </label>
+            @empty
+                <p class="text-sm text-gray-500">
+                    Belum ada akun teacher.
+                </p>
+            @endforelse
+        </div>
+
+        @error('teacher_ids.*')
+            <span class="mt-1 text-sm text-red-500">
+                {{ $message }}
+            </span>
         @enderror
     </div>
 
@@ -39,10 +71,9 @@
     <!-- BUTTON -->
     <div class="flex items-center gap-3">
 
-        <button 
-            type="submit"
-            wire:loading.attr="disabled"
-            class="text-white bg-brand hover:bg-brand-strong focus:ring-4 focus:ring-brand-medium shadow-xs font-medium rounded-base text-sm px-4 py-2.5">
+        <button
+            class="bg-brand hover:bg-brand-strong focus:ring-brand-medium shadow-xs rounded-base px-4 py-2.5 text-sm font-medium text-white focus:ring-4"
+            type="submit" wire:loading.attr="disabled">
 
             <span wire:loading.remove wire:target="update">
                 Update Kelas
@@ -54,10 +85,8 @@
 
         </button>
 
-        <a 
-            wire:navigate
-            href="{{ route('course.index') }}"
-            class="px-4 py-2.5 text-sm font-medium rounded-base border border-default hover:bg-neutral-secondary-medium">
+        <a class="rounded-base border-default hover:bg-neutral-secondary-medium border px-4 py-2.5 text-sm font-medium"
+            href="{{ route('course.index') }}" wire:navigate>
             Batal
         </a>
 

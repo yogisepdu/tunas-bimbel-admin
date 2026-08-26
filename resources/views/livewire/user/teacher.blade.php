@@ -3,97 +3,127 @@
     <x-button-add :route="route('teacher.create')" />
 
     @if (session()->has('success'))
-        <div class="mb-4 p-3 text-green-700 bg-green-100 rounded">
+        <div class="mb-4 rounded-lg bg-green-100 p-3 text-green-700">
             {{ session('success') }}
         </div>
     @endif
 
-    <div class="relative overflow-x-auto bg-neutral-primary-soft shadow-xs rounded-base border border-default">
+    <div class="rounded-base border-default bg-neutral-primary-soft shadow-xs relative overflow-x-auto border">
+        <table class="text-body w-full text-left text-sm">
 
-        <table class="w-full text-sm text-left text-body">
-
-            <thead class="text-sm text-body bg-neutral-secondary-medium border-b border-default-medium">
+            <thead class="border-default-medium bg-neutral-secondary-medium text-body border-b text-sm">
                 <tr>
-                    <th class="px-6 py-3 font-medium">Name</th>
-                    <th class="px-6 py-3 font-medium">Email</th>
-                    <th class="px-6 py-3 font-medium">Phone</th>
-                    <th class="px-6 py-3 font-medium">Company</th>
-                    <th class="px-6 py-3 font-medium">Specialization</th>
-                    <th class="px-6 py-3 font-medium">Experience Years</th>
-                    <th class="px-6 py-3 font-medium">Bio</th>
-                    <th class="px-6 py-3 font-medium text-right">Action</th>
+                    <th class="px-6 py-3 font-medium">
+                        Name
+                    </th>
+
+                    <th class="px-6 py-3 font-medium">
+                        Email
+                    </th>
+
+                    <th class="px-6 py-3 font-medium">
+                        Phone
+                    </th>
+
+                    <th class="px-6 py-3 font-medium">
+                        Company
+                    </th>
+
+                    <th class="px-6 py-3 font-medium">
+                        Specialization
+                    </th>
+
+                    <th class="px-6 py-3 font-medium">
+                        Experience Years
+                    </th>
+
+                    <th class="px-6 py-3 font-medium">
+                        Bio
+                    </th>
+
+                    <th class="px-6 py-3 text-right font-medium">
+                        Action
+                    </th>
                 </tr>
             </thead>
 
             <tbody>
 
-                @forelse($teachers as $teacher)
+                @forelse ($teachers as $user)
+                    @php
+                        $teacherProfile = $user->teacher;
+                    @endphp
 
-                    <tr class="bg-neutral-primary-soft border-b border-default hover:bg-neutral-secondary-medium">
+                    <tr class="border-default bg-neutral-primary-soft hover:bg-neutral-secondary-medium border-b"
+                        wire:key="teacher-user-{{ $user->id }}">
 
-                        <td class="px-6 py-4 font-medium text-heading whitespace-nowrap">
-                            {{ $teacher->user->name }}
+                        <td class="text-heading whitespace-nowrap px-6 py-4 font-medium">
+                            {{ $user->name }}
                         </td>
 
                         <td class="px-6 py-4">
-                            {{ $teacher->user->email }}
+                            {{ $user->email }}
                         </td>
 
                         <td class="px-6 py-4">
-                            {{ $teacher->phone }}
+                            {{ $teacherProfile?->phone ?? '-' }}
                         </td>
 
                         <td class="px-6 py-4">
-                            {{ $teacher->company }}
+                            {{ $teacherProfile?->company ?? '-' }}
                         </td>
 
                         <td class="px-6 py-4">
-                            {{ $teacher->specialization }}
+                            {{ $teacherProfile?->specialization ?? '-' }}
                         </td>
 
                         <td class="px-6 py-4">
-                            {{ $teacher->experience_years }} years
+                            @if ($teacherProfile?->experience_years !== null)
+                                {{ $teacherProfile->experience_years }} tahun
+                            @else
+                                -
+                            @endif
                         </td>
 
                         <td class="px-6 py-4">
-                            {{ Str::limit($teacher->bio, 40) }}
+                            {{ $teacherProfile?->bio ? \Illuminate\Support\Str::limit($teacherProfile->bio, 40) : '-' }}
                         </td>
 
-                        <td class="px-6 py-4 text-right space-x-3">
+                        <td class="space-x-3 px-6 py-4 text-right">
 
-                            <a wire:navigate href="{{ route('teacher.edit', $teacher->id) }}"
-                                class="font-medium text-fg-brand hover:underline">
+                            <a class="text-fg-brand font-medium hover:underline"
+                                href="{{ route('teacher.edit', [
+                                    'userId' => $user->id,
+                                ]) }}"
+                                wire:navigate>
                                 Edit
                             </a>
 
-                            <button
-                                wire:click="delete({{ $teacher->id }})"
-                                wire:loading.attr="disabled"
-                                class="font-medium text-red-500 hover:underline">
-
-                                <span wire:loading.remove wire:target="delete({{ $teacher->id }})">
+                            <button class="font-medium text-red-500 hover:underline disabled:opacity-50" type="button"
+                                wire:click="delete({{ $user->id }})"
+                                wire:confirm="Apakah Anda yakin ingin menghapus akun teacher ini?"
+                                wire:loading.attr="disabled" wire:target="delete({{ $user->id }})">
+                                <span wire:loading.remove wire:target="delete({{ $user->id }})">
                                     Delete
                                 </span>
 
-                                <span wire:loading wire:target="delete({{ $teacher->id }})">
+                                <span wire:loading wire:target="delete({{ $user->id }})">
                                     Deleting...
                                 </span>
-
                             </button>
 
                         </td>
 
                     </tr>
 
-                    @empty
+                @empty
 
                     <tr>
-                        <td colspan="8" class="px-6 py-6 text-center text-gray-500">
-                            No teachers found
+                        <td class="px-6 py-8 text-center text-gray-500" colspan="8">
+                            Tidak ada akun teacher.
                         </td>
                     </tr>
-
-                    @endforelse
+                @endforelse
 
             </tbody>
 

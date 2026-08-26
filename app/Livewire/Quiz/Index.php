@@ -2,28 +2,38 @@
 
 namespace App\Livewire\Quiz;
 
-use App\Models\ClassRoom;
-use App\Models\Quiz;
-use Livewire\Component;
+use App\Support\ClassAccess;
 use Livewire\Attributes\On;
+use Livewire\Component;
 
 class Index extends Component
 {
-    public function render()
-    {
-        return view('livewire.quiz.index', [
-            'classes' => ClassRoom::with('quizzes.questions')->get()
-        ])->layout('layouts.admin');
-    }
-
     #[On('deleteClass')]
     public function delete($id)
     {
-        $quiz = Quiz::findOrFail($id);
+        $quiz = ClassAccess::quizOrFail(
+            (int) $id
+        );
 
-        // hapus quiz
         $quiz->delete();
 
-        session()->flash('success', 'Quiz berhasil dihapus');
+        session()->flash(
+            'success',
+            'Quiz berhasil dihapus'
+        );
+
+        $this->dispatch('deleted');
+    }
+
+    public function render()
+    {
+        $classes = ClassAccess::classes()
+            ->with('quizzes.questions')
+            ->orderBy('name')
+            ->get();
+
+        return view('livewire.quiz.index', [
+            'classes' => $classes,
+        ])->layout('layouts.admin');
     }
 }

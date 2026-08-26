@@ -6,6 +6,7 @@ use App\Models\Chapter;
 use App\Models\ClassRoom;
 use App\Models\Quiz;
 use Livewire\Component;
+use App\Support\ClassAccess;
 
 class Create extends Component
 {
@@ -23,21 +24,29 @@ class Create extends Component
     {
         $this->validate();
 
+        $class = ClassAccess::classOrFail(
+            (int) $this->class_id
+        );
+
         Quiz::create([
-            'class_id' => $this->class_id,
+            'class_id' => $class->id,
             'title' => $this->title,
-            'duration' => $this->duration
+            'duration' => $this->duration,
         ]);
 
-        session()->flash('success','Quiz berhasil dibuat');
+        session()->flash('success', 'Quiz berhasil dibuat');
 
-        return $this->redirect(route('quiz.index'), navigate:true);
+        return $this->redirect(route('quiz.index'), navigate: true);
     }
 
     public function render()
     {
-        return view('livewire.quiz.form.create',[
-            'classes' => ClassRoom::all()
+        $classes = ClassAccess::classes()
+            ->orderBy('name')
+            ->get();
+
+        return view('livewire.quiz.form.create', [
+            'classes' => $classes,
         ])->layout('layouts.admin');
     }
 }

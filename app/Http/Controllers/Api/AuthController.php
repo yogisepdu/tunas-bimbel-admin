@@ -10,6 +10,9 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Str;
+use App\Models\ProfileSiswa;
+use App\Models\Student;
+use Illuminate\Support\Facades\DB;
 
 class AuthController extends Controller
 {
@@ -62,24 +65,75 @@ class AuthController extends Controller
     public function register(Request $request)
     {
         $validated = $request->validate([
-            'name' => 'required|string|max:255',
-            'email' => 'required|email|unique:users,email',
-            'password' => 'required|min:6|confirmed',
+            'name' => [
+                'required',
+                'string',
+                'max:255',
+            ],
+            'email' => [
+                'required',
+                'email',
+                'unique:users,email',
+            ],
+            'password' => [
+                'required',
+                'string',
+                'min:6',
+                'confirmed',
+            ],
         ]);
 
-        $user = User::create([
-            'name' => $validated['name'],
-            'email' => $validated['email'],
-            'password' => Hash::make($validated['password']),
-            'role' => 'student',
-        ]);
+        $user = DB::transaction(function () use ($validated) {
+            /*
+        |--------------------------------------------------------------------------
+        | Buat akun utama
+        |--------------------------------------------------------------------------
+        */
+            $user = User::create([
+                'name' => trim($validated['name']),
+                'email' => strtolower(trim($validated['email'])),
+                'password' => Hash::make($validated['password']),
+                'role' => 'student',
+            ]);
 
-        // 🔥 KIRIM EMAIL VERIFIKASI
+            /*
+        |--------------------------------------------------------------------------
+        | Buat data siswa
+        |--------------------------------------------------------------------------
+        */
+            Student::create([
+                'user_id' => $user->id,
+                'phone' => null,
+                'school' => null,
+                'grade' => null,
+                'address' => null,
+                'birth_date' => null,
+            ]);
+
+            /*
+        |--------------------------------------------------------------------------
+        | Buat profil aplikasi Android
+        |--------------------------------------------------------------------------
+        */
+            ProfileSiswa::create([
+                'user_id' => $user->id,
+                'name' => $user->name,
+                'phone' => null,
+                'gender' => null,
+                'province_id' => null,
+                'regency_id' => null,
+                'district_id' => null,
+                'village_id' => null,
+            ]);
+
+            return $user;
+        });
+
         $user->sendEmailVerificationNotification();
 
         return response()->json([
-            'message' => 'Register berhasil, silakan cek email untuk verifikasi'
-        ]);
+            'message' => 'Registrasi berhasil, silakan cek email untuk verifikasi.',
+        ], 201);
     }
 
     // ======================
@@ -162,7 +216,6 @@ class AuthController extends Controller
             return response()->json([
                 'message' => __($status)
             ], 400);
-
         } catch (\Exception $e) {
             return response()->json([
                 'message' => 'Server error',

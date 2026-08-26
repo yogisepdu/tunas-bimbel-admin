@@ -2,11 +2,10 @@
 
 namespace App\Livewire\Quizez;
 
-use App\Models\Question;
 use App\Models\Quiz;
-use Illuminate\Support\Facades\Storage;
-use Livewire\Component;
+use App\Support\ClassAccess;
 use Livewire\Attributes\On;
+use Livewire\Component;
 
 class Index extends Component
 {
@@ -14,24 +13,42 @@ class Index extends Component
 
     public function mount(Quiz $quiz)
     {
-        $this->quiz = $quiz;
-    }
-
-    public function render()
-    {
-        return view('livewire.quizez.index', [
-            'questions' => Question::where('quiz_id', $this->quiz->id)->get()
-        ])->layout('layouts.admin');
+        $this->quiz = ClassAccess::quizOrFail(
+            (int) $quiz->id
+        );
     }
 
     #[On('deleteClass')]
     public function deleteQuestion($id)
     {
-        $question = Question::findOrFail($id);
+        $question = ClassAccess::questionOrFail(
+            (int) $id
+        );
+
+        abort_unless(
+            (int) $question->quiz_id === (int) $this->quiz->id,
+            404
+        );
 
         $question->delete();
 
-        session()->flash('success', 'Soal berhasil dihapus');
+        session()->flash(
+            'success',
+            'Soal berhasil dihapus'
+        );
+
         $this->dispatch('deleted');
+    }
+
+    public function render()
+    {
+        $questions = $this->quiz
+            ->questions()
+            ->latest()
+            ->get();
+
+        return view('livewire.quizez.index', [
+            'questions' => $questions,
+        ])->layout('layouts.admin');
     }
 }

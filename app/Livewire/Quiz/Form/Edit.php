@@ -5,6 +5,7 @@ namespace App\Livewire\Quiz\Form;
 use App\Models\ClassRoom;
 use App\Models\Quiz;
 use Livewire\Component;
+use App\Support\ClassAccess;
 
 class Edit extends Component
 {
@@ -22,7 +23,9 @@ class Edit extends Component
 
     public function mount($id)
     {
-        $quiz = Quiz::findOrFail($id);
+        $quiz = ClassAccess::quizOrFail(
+            (int) $id
+        );
 
         $this->quizId = $quiz->id;
         $this->class_id = $quiz->class_id;
@@ -34,12 +37,18 @@ class Edit extends Component
     {
         $this->validate();
 
-        $quiz = Quiz::findOrFail($this->quizId);
+        $quiz = ClassAccess::quizOrFail(
+            (int) $this->quizId
+        );
+
+        $class = ClassAccess::classOrFail(
+            (int) $this->class_id
+        );
 
         $quiz->update([
-            'class_id' => $this->class_id,
+            'class_id' => $class->id,
             'title' => $this->title,
-            'duration' => $this->duration
+            'duration' => $this->duration,
         ]);
 
         session()->flash('success', 'Quiz berhasil diperbarui');
@@ -49,8 +58,12 @@ class Edit extends Component
 
     public function render()
     {
+        $classes = ClassAccess::classes()
+            ->orderBy('name')
+            ->get();
+
         return view('livewire.quiz.form.edit', [
-            'classes' => ClassRoom::all()
+            'classes' => $classes,
         ])->layout('layouts.admin');
     }
 }

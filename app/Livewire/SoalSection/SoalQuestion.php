@@ -2,44 +2,51 @@
 
 namespace App\Livewire\SoalSection;
 
-use Livewire\Component;
 use App\Models\SoalSection;
-use App\Models\SoalQuestion as SoalQuestionModel;
+use App\Support\ClassAccess;
 use Illuminate\Support\Facades\DB;
+use Livewire\Component;
 
 class SoalQuestion extends Component
 {
-    // ================= DELETE =================
     public function delete($id)
     {
-        $question = SoalQuestionModel::with(['options', 'set'])->find($id);
-
-        if (!$question) return;
+        $question = ClassAccess::soalQuestionOrFail(
+            (int) $id
+        );
 
         DB::transaction(function () use ($question) {
+            $set = $question->set;
 
-            // hapus options
-            $question->options()->delete();
-
-            // kurangi total soal di set
-            if ($question->set) {
-                $question->set->decrement('total_questions');
-            }
-
-            // hapus soal
             $question->delete();
+
+            if ($set && $set->total_questions > 0) {
+                $set->decrement('total_questions');
+            }
         });
 
-        session()->flash('success', 'Soal berhasil dihapus');
+        session()->flash(
+            'success',
+            'Soal berhasil dihapus'
+        );
     }
 
-    // ================= RENDER =================
     public function render()
     {
+        $sections = SoalSection::query()
+            ->whereIn(
+                'class_id',
+                ClassAccess::classIds()
+            )
+            ->with([
+                'classRoom',
+                'sets.questions.options',
+            ])
+            ->latest()
+            ->get();
+
         return view('livewire.soal-section.soal-question', [
-            'sections' => SoalSection::with([
-                'sets.questions.options'
-            ])->latest()->get()
+            'sections' => $sections,
         ])->layout('layouts.admin');
     }
 }

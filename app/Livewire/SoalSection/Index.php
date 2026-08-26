@@ -3,9 +3,9 @@
 namespace App\Livewire\SoalSection;
 
 use App\Models\SoalSection;
-use App\Models\ClassRoom;
-use Livewire\Component;
+use App\Support\ClassAccess;
 use Livewire\Attributes\On;
+use Livewire\Component;
 
 class Index extends Component
 {
@@ -14,48 +14,66 @@ class Index extends Component
 
     public function save()
     {
-        $this->validate([
+        $validated = $this->validate([
             'title' => 'required|string|max:255',
-            'class_id' => 'required|exists:classes,id'
+            'class_id' => 'required|integer|exists:classes,id',
         ]);
 
+        $class = ClassAccess::classOrFail(
+            (int) $validated['class_id']
+        );
+
         SoalSection::create([
-            'title' => $this->title,
-            'class_id' => $this->class_id
+            'title' => $validated['title'],
+            'class_id' => $class->id,
         ]);
 
         $this->reset(['title', 'class_id']);
 
-        session()->flash('success', 'Section berhasil ditambahkan');
+        session()->flash(
+            'success',
+            'Section berhasil ditambahkan'
+        );
     }
 
     #[On('deleteSection')]
     public function delete($id)
     {
-        $section = SoalSection::with('sets.questions.options')->findOrFail($id);
+        $section = ClassAccess::sectionOrFail(
+            (int) $id
+        );
 
-        foreach ($section->sets as $set) {
-
-            foreach ($set->questions as $question) {
-                $question->options()->delete();
-                $question->delete();
-            }
-
-            $set->delete();
-        }
-
+        /*
+         * Foreign key cascade akan menghapus:
+         * section -> set -> question -> option.
+         */
         $section->delete();
 
-        session()->flash('success', 'Section & semua data terkait berhasil dihapus');
+        session()->flash(
+            'success',
+            'Section dan semua data terkait berhasil dihapus'
+        );
 
         $this->dispatch('deleted');
     }
 
     public function render()
     {
+        $classIds = ClassAccess::classIds();
+
+        $sections = SoalSection::query()
+            ->whereIn('class_id', $classIds)
+            ->with('classRoom')
+            ->latest()
+            ->get();
+
+        $classes = ClassAccess::classes()
+            ->orderBy('name')
+            ->get();
+
         return view('livewire.soal-section.index', [
-            'sections' => SoalSection::with('classRoom')->latest()->get(),
-            'classes' => ClassRoom::all()
+            'sections' => $sections,
+            'classes' => $classes,
         ])->layout('layouts.admin');
     }
 }

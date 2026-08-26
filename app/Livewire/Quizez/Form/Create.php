@@ -10,6 +10,7 @@ use Livewire\WithFileUploads;
 use Illuminate\Support\Str;
 use Intervention\Image\ImageManager;
 use Intervention\Image\Drivers\Gd\Driver;
+use App\Support\ClassAccess;
 
 class Create extends Component
 {
@@ -28,7 +29,11 @@ class Create extends Component
 
     public function mount($quiz)
     {
-        $this->quiz_id = $quiz;
+        $authorizedQuiz = ClassAccess::quizOrFail(
+            (int) $quiz
+        );
+
+        $this->quiz_id = $authorizedQuiz->id;
     }
 
     public function save()
@@ -43,11 +48,13 @@ class Create extends Component
             'correct_answer' => 'required|string',
         ]);
 
+        $quiz = ClassAccess::quizOrFail(
+            (int) $this->quiz_id
+        );
+
         $imagePath = null;
 
         if ($this->image) {
-
-            $quiz = Quiz::findOrFail($this->quiz_id);
 
             // folder berdasarkan title quiz
             $folder = 'questions/' . Str::slug($quiz->title);
@@ -101,8 +108,8 @@ class Create extends Component
 
     public function render()
     {
-        return view('livewire.quizez.form.create',[
-            'quizzes' => Quiz::all()
-        ])->layout('layouts.admin');
+        return view(
+            'livewire.quizez.form.create'
+        )->layout('layouts.admin');
     }
 }

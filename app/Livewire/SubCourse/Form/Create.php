@@ -3,7 +3,7 @@
 namespace App\Livewire\SubCourse\Form;
 
 use App\Models\Chapter;
-use App\Models\ClassRoom;
+use App\Support\ClassAccess;
 use Livewire\Component;
 
 class Create extends Component
@@ -14,28 +14,41 @@ class Create extends Component
 
     public function save()
     {
-        $this->validate([
-            'class_id' => 'required|exists:classes,id',
+        $validated = $this->validate([
+            'class_id' => 'required|integer|exists:classes,id',
             'title' => 'required|string|max:255',
-            'description' => 'nullable|string'
+            'description' => 'nullable|string',
         ]);
+
+        $class = ClassAccess::classOrFail(
+            (int) $validated['class_id']
+        );
 
         Chapter::create([
-            'class_id' => $this->class_id,
-            'title' => $this->title,
-            'description' => $this->description
+            'class_id' => $class->id,
+            'title' => $validated['title'],
+            'description' => $validated['description'] ?? null,
         ]);
 
-        session()->flash('success', 'Chapter berhasil dibuat');
+        session()->flash(
+            'success',
+            'Chapter berhasil dibuat'
+        );
 
-        return $this->redirect(route('sub-course.index'), navigate: true);
+        return $this->redirect(
+            route('sub-course.index'),
+            navigate: true
+        );
     }
+
     public function render()
     {
-        $classes = ClassRoom::latest()->get();
+        $classes = ClassAccess::classes()
+            ->orderBy('name')
+            ->get();
 
-        return view('livewire.sub-course.form.create',[
-            'classes' => $classes
+        return view('livewire.sub-course.form.create', [
+            'classes' => $classes,
         ])->layout('layouts.admin');
     }
 }

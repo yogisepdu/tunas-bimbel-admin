@@ -1,17 +1,22 @@
-<div class="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-600 via-indigo-600 to-purple-700">
+<div class="flex min-h-screen items-center justify-center bg-gradient-to-br from-blue-600 via-indigo-600 to-purple-700">
 
     <div class="w-full max-w-md">
+        @if (session('error'))
+            <div class="mb-4 rounded-lg border border-red-400 bg-red-100 px-4 py-3 text-sm text-red-700">
+                {{ session('error') }}
+            </div>
+        @endif
 
         <!-- Card -->
-        <form wire:submit.prevent="login"
-            class="bg-black/50 backdrop-blur-md shadow-2xl rounded-2xl p-8 border border-white/20">
+        <form class="rounded-2xl border border-white/20 bg-black/50 p-8 shadow-2xl backdrop-blur-md"
+            wire:submit.prevent="login">
 
             <!-- Title -->
-            <div class="text-center mb-6">
+            <div class="mb-6 text-center">
                 <h2 class="text-2xl font-bold text-white">
                     Tunas Bimbel Admin Login
                 </h2>
-                <p class="text-white text-sm">
+                <p class="text-sm text-white">
                     Silakan masuk ke dashboard
                 </p>
             </div>
@@ -21,11 +26,7 @@
                 <flux:field>
                     <flux:label>Email</flux:label>
 
-                    <flux:input
-                        type="email"
-                        wire:model.defer="email"
-                        placeholder="admin@email.com"
-                    />
+                    <flux:input placeholder="admin@email.com" type="email" wire:model.defer="email" />
 
                     <flux:error name="email" />
                 </flux:field>
@@ -36,22 +37,16 @@
                 <flux:field>
                     <flux:label>Password</flux:label>
 
-                    <flux:input
-                        type="password"
-                        wire:model.defer="password"
-                        placeholder="••••••••"
-                    />
+                    <flux:input placeholder="••••••••" type="password" wire:model.defer="password" />
 
                     <flux:error name="password" />
                 </flux:field>
             </div>
 
             <!-- Button -->
-            <button type="submit"
-                wire:loading.attr="disabled"
-                class="w-full bg-blue-600 hover:bg-blue-700 text-white
-                font-semibold py-2.5 rounded-lg
-                transition duration-200 shadow-md hover:shadow-lg">
+            <button
+                class="w-full rounded-lg bg-blue-600 py-2.5 font-semibold text-white shadow-md transition duration-200 hover:bg-blue-700 hover:shadow-lg"
+                type="submit" wire:loading.attr="disabled">
 
                 <span wire:loading.remove>Login</span>
                 <span wire:loading>Loading...</span>
@@ -59,7 +54,7 @@
             </button>
 
             <!-- Footer -->
-            <p class="text-center text-xs text-gray-500 mt-6">
+            <p class="mt-6 text-center text-xs text-gray-500">
                 © {{ date('Y') }} Admin Panel Tunas Bimbel. All rights reserved.
             </p>
 

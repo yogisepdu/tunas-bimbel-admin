@@ -2,28 +2,38 @@
 
 namespace App\Livewire\Video;
 
-use App\Models\ClassRoom;
-use App\Models\Video;
-use Livewire\Component;
+use App\Support\ClassAccess;
 use Livewire\Attributes\On;
+use Livewire\Component;
 
 class Index extends Component
 {
     #[On('deleteClass')]
     public function delete($id)
     {
-        Video::findOrFail($id)->delete();
+        $video = ClassAccess::videoOrFail(
+            (int) $id
+        );
 
-        session()->flash('message', 'Video berhasil dihapus');
+        $video->delete();
+
+        session()->flash(
+            'message',
+            'Video berhasil dihapus'
+        );
+
         $this->dispatch('deleted');
     }
 
     public function render()
     {
-        return view('livewire.video.index',[
-            'classes' => ClassRoom::with([
-            'chapters.videos'
-            ])->get()
+        $classes = ClassAccess::classes()
+            ->with('chapters.videos')
+            ->orderBy('name')
+            ->get();
+
+        return view('livewire.video.index', [
+            'classes' => $classes,
         ])->layout('layouts.admin');
     }
 }

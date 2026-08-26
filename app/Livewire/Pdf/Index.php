@@ -2,29 +2,38 @@
 
 namespace App\Livewire\Pdf;
 
-use App\Models\ClassRoom;
-use App\Models\MateriPdf;
-use Livewire\Component;
+use App\Support\ClassAccess;
 use Livewire\Attributes\On;
+use Livewire\Component;
 
 class Index extends Component
 {
-    public function render()
-    {
-        return view('livewire.pdf.index',[
-            'classes' => ClassRoom::with([
-                'chapters.materiPdf'
-            ])->get()
-        ])->layout('layouts.admin');
-    }
-
     #[On('deleteClass')]
     public function delete($id)
     {
-        MateriPdf::findOrFail($id)->delete();
+        $pdf = ClassAccess::pdfOrFail(
+            (int) $id
+        );
 
-        session()->flash('success', 'Materi PDF berhasil dihapus');
+        $pdf->delete();
+
+        session()->flash(
+            'success',
+            'Materi PDF berhasil dihapus'
+        );
 
         $this->dispatch('deleted');
+    }
+
+    public function render()
+    {
+        $classes = ClassAccess::classes()
+            ->with('chapters.materiPdf')
+            ->orderBy('name')
+            ->get();
+
+        return view('livewire.pdf.index', [
+            'classes' => $classes,
+        ])->layout('layouts.admin');
     }
 }

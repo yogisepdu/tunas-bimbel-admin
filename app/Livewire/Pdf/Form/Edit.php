@@ -5,6 +5,7 @@ namespace App\Livewire\Pdf\Form;
 use App\Models\Chapter;
 use App\Models\ClassRoom;
 use App\Models\MateriPdf;
+use App\Support\ClassAccess;
 use Livewire\Component;
 
 class Edit extends Component
@@ -18,7 +19,9 @@ class Edit extends Component
 
     public function mount($id)
     {
-        $pdf = MateriPdf::findOrFail($id);
+        $pdf = ClassAccess::pdfOrFail(
+            (int) $id
+        );
 
         $this->pdfId = $pdf->id;
         $this->chapter_id = $pdf->chapter_id;
@@ -39,7 +42,26 @@ class Edit extends Component
     {
         $this->validate();
 
-        $pdf = MateriPdf::findOrFail($this->pdfId);
+        $pdf = ClassAccess::pdfOrFail(
+            (int) $this->pdfId
+        );
+
+        $class = ClassAccess::classOrFail(
+            (int) $this->class_id
+        );
+
+        $chapter = ClassAccess::chapterOrFail(
+            (int) $this->chapter_id
+        );
+
+        if ((int) $chapter->class_id !== (int) $class->id) {
+            $this->addError(
+                'chapter_id',
+                'Sub materi tidak sesuai dengan kelas yang dipilih.'
+            );
+
+            return;
+        }
 
         $pdf->update([
             'chapter_id' => $this->chapter_id,

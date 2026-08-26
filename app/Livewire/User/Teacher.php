@@ -2,30 +2,52 @@
 
 namespace App\Livewire\User;
 
-use App\Models\Teacher as ModelsTeacher;
+use App\Models\User;
+use Illuminate\Support\Facades\DB;
 use Livewire\Component;
 
 class Teacher extends Component
 {
-    public $title = 'Teacher';
+    public string $title = 'Teacher';
+
     public function render()
     {
-        $teachers = ModelsTeacher::with('user')->latest()->get();
+        /*
+        |--------------------------------------------------------------------------
+        | Ambil seluruh akun dengan role teacher
+        |--------------------------------------------------------------------------
+        */
+        $teachers = User::query()
+            ->where('role', 'teacher')
+            ->with('teacher')
+            ->latest()
+            ->get();
 
-        return view('livewire.user.teacher', compact('teachers'))->layout('layouts.admin', ['title' => $this->title]);
+        return view(
+            'livewire.user.teacher',
+            compact('teachers')
+        )->layout('layouts.admin', [
+            'title' => $this->title,
+        ]);
     }
 
-    public function delete($id)
+    public function delete(int $id): void
     {
-        // dd($id);
-        $teacher = ModelsTeacher::findOrFail($id);
+        $user = User::query()
+            ->where('role', 'teacher')
+            ->findOrFail($id);
 
-        // hapus user yang terhubung
-        $teacher->user()->delete();
+        DB::transaction(function () use ($user) {
+            /*
+            | Data pada tabel teachers ikut terhapus karena
+            | foreign key menggunakan cascadeOnDelete.
+            */
+            $user->delete();
+        });
 
-        // hapus teacher
-        $teacher->delete();
-
-        session()->flash('success', 'Teacher deleted successfully');
+        session()->flash(
+            'success',
+            'Akun teacher berhasil dihapus.'
+        );
     }
 }
