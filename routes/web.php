@@ -23,7 +23,7 @@ use App\Livewire\Dashboard;
 
 // USER MANAGEMENT
 use App\Livewire\User\Student;
-use App\Livewire\User\Teacher;
+use App\Livewire\User\Teacher as TeacherIndex;
 use App\Livewire\User\Form\StudentCreate;
 use App\Livewire\User\Form\StudentEdit;
 use App\Livewire\User\Form\CreateTeacher;
@@ -102,11 +102,8 @@ Route::middleware('guest')->group(function () {
         ->name('login');
 
     /*
-     * Registrasi melalui website admin tidak disediakan.
+     * Registrasi melalui panel website tidak disediakan.
      * Registrasi student dilakukan melalui aplikasi/API.
-     *
-     * Route tetap tersedia agar pemanggilan route('register')
-     * tidak menghasilkan error.
      */
     Route::redirect('/register', '/login')
         ->name('register');
@@ -130,7 +127,8 @@ Route::middleware('guest')->group(function () {
 | PANEL ADMIN
 |--------------------------------------------------------------------------
 |
-| Hanya role berikut yang boleh masuk:
+| Role yang boleh masuk:
+|
 | - administrator
 | - admin
 | - teacher
@@ -158,13 +156,18 @@ Route::middleware([
     | USER MANAGEMENT
     |--------------------------------------------------------------------------
     |
-    | Hanya administrator yang boleh mengelola akun student dan teacher.
+    | Hanya administrator yang dapat mengelola akun.
     |
     */
 
     Route::middleware('role:administrator')->group(function () {
 
-        // STUDENT
+        /*
+        |--------------------------------------------------------------------------
+        | STUDENT
+        |--------------------------------------------------------------------------
+        */
+
         Route::get('/student', Student::class)
             ->name('student.index');
 
@@ -175,16 +178,80 @@ Route::middleware([
             ->whereNumber('id')
             ->name('student.edit');
 
-        // TEACHER
-        Route::get('/teacher', Teacher::class)
+        /*
+        |--------------------------------------------------------------------------
+        | ADMIN DAN TEACHER
+        |--------------------------------------------------------------------------
+        |
+        | Halaman ini menampilkan:
+        |
+        | - Tabel akun Admin
+        | - Tabel akun Teacher
+        |
+        */
+
+        Route::get('/teacher', TeacherIndex::class)
             ->name('teacher.index');
+
+        /*
+        |--------------------------------------------------------------------------
+        | TAMBAH AKUN ADMIN ATAU TEACHER
+        |--------------------------------------------------------------------------
+        |
+        | Satu komponen CreateTeacher digunakan untuk membuat:
+        |
+        | - Admin
+        | - Teacher
+        |
+        */
 
         Route::get('/teacher/create', CreateTeacher::class)
             ->name('teacher.create');
 
-        Route::get('/teacher/{userId}/edit', TeacherEdit::class)
+        /*
+        |--------------------------------------------------------------------------
+        | EDIT AKUN ADMIN ATAU TEACHER
+        |--------------------------------------------------------------------------
+        |
+        | TeacherEdit dapat membuka akun dengan role:
+        |
+        | - Admin
+        | - Teacher
+        |
+        */
+
+        Route::get(
+            '/teacher/{userId}/edit',
+            TeacherEdit::class
+        )
             ->whereNumber('userId')
             ->name('teacher.edit');
+
+        /*
+        |--------------------------------------------------------------------------
+        | KOMPATIBILITAS ROUTE ADMIN LAMA
+        |--------------------------------------------------------------------------
+        |
+        | Route berikut dipertahankan agar link lama yang menggunakan
+        | admin.index, admin.create, atau admin.edit tidak error.
+        |
+        */
+
+        Route::get('/admin', function () {
+            return redirect()->route('teacher.index');
+        })->name('admin.index');
+
+        Route::get('/admin/create', function () {
+            return redirect()->route('teacher.create');
+        })->name('admin.create');
+
+        Route::get('/admin/{id}/edit', function ($id) {
+            return redirect()->route('teacher.edit', [
+                'userId' => $id,
+            ]);
+        })
+            ->whereNumber('id')
+            ->name('admin.edit');
     });
 
     /*
@@ -192,7 +259,7 @@ Route::middleware([
     | MASTER KELAS
     |--------------------------------------------------------------------------
     |
-    | Administrator dan admin dapat membuat/mengedit kelas.
+    | Administrator dan admin dapat membuat atau mengedit kelas.
     | Teacher hanya dapat melihat kelas yang ditugaskan kepadanya.
     |
     */
@@ -215,22 +282,36 @@ Route::middleware([
     |--------------------------------------------------------------------------
     |
     | Dapat diakses administrator, admin, dan teacher.
+    |
     | Untuk teacher, data wajib difilter menggunakan ClassAccess.
     |
     */
 
-    // SUB MATERI
+    /*
+    |--------------------------------------------------------------------------
+    | SUB MATERI
+    |--------------------------------------------------------------------------
+    */
+
     Route::get('/sub-course', SubCourseIndex::class)
         ->name('sub-course.index');
 
     Route::get('/sub-course/create', SubCourseCreate::class)
         ->name('sub-course.create');
 
-    Route::get('/sub-course/{id}/edit', SubCourseEdit::class)
+    Route::get(
+        '/sub-course/{id}/edit',
+        SubCourseEdit::class
+    )
         ->whereNumber('id')
         ->name('sub-course.edit');
 
-    // VIDEO
+    /*
+    |--------------------------------------------------------------------------
+    | VIDEO
+    |--------------------------------------------------------------------------
+    */
+
     Route::get('/video', VideoIndex::class)
         ->name('video.index');
 
@@ -241,7 +322,12 @@ Route::middleware([
         ->whereNumber('id')
         ->name('video.edit');
 
-    // PDF
+    /*
+    |--------------------------------------------------------------------------
+    | PDF
+    |--------------------------------------------------------------------------
+    */
+
     Route::get('/pdf', PdfIndex::class)
         ->name('pdf.index');
 
@@ -268,12 +354,23 @@ Route::middleware([
         ->whereNumber('id')
         ->name('quiz.edit');
 
-    // DAFTAR PERTANYAAN QUIZ
-    Route::get('/quiz/{quiz}/questions', QuestionIndex::class)
+    /*
+    |--------------------------------------------------------------------------
+    | DAFTAR PERTANYAAN QUIZ
+    |--------------------------------------------------------------------------
+    */
+
+    Route::get(
+        '/quiz/{quiz}/questions',
+        QuestionIndex::class
+    )
         ->whereNumber('quiz')
         ->name('question.index');
 
-    Route::get('/quiz/{quiz}/questions/create', QuestionCreate::class)
+    Route::get(
+        '/quiz/{quiz}/questions/create',
+        QuestionCreate::class
+    )
         ->whereNumber('quiz')
         ->name('question.create');
 
@@ -283,26 +380,38 @@ Route::middleware([
     |--------------------------------------------------------------------------
     */
 
-    // SECTION TRYOUT
+    /*
+     * Section TryOut.
+     */
     Route::get('/soal-section', SoalSectionIndex::class)
         ->name('soal-section.index');
 
-    // SET TRYOUT
+    /*
+     * Set TryOut.
+     */
     Route::get('/soal-set/create', SoalSet::class)
         ->name('soal-set.index');
 
-    // DAFTAR SOAL TRYOUT
+    /*
+     * Daftar soal TryOut.
+     */
     Route::get('/soal-question/home', SoalQuestion::class)
         ->name('soal-question.index');
 
-    Route::get('/soal-question/create', SoalQuestionCreate::class)
-        ->name('soal-question.create');
+    Route::get(
+        '/soal-question/create',
+        SoalQuestionCreate::class
+    )->name('soal-question.create');
 
-    // IMPORT SOAL
+    /*
+     * Import soal TryOut.
+     */
     Route::get('/soal/import', ImportExcel::class)
         ->name('soal.import');
 
-    // DOWNLOAD TEMPLATE EXCEL
+    /*
+     * Download template Excel.
+     */
     Route::get('/soal/template', function () {
         return Excel::download(
             new SoalTemplateExport(),
@@ -326,7 +435,10 @@ Route::middleware([
         Route::get('/packages/create', PackagesCreate::class)
             ->name('packages.create');
 
-        Route::get('/packages/{id}/edit', PackagesEdit::class)
+        Route::get(
+            '/packages/{id}/edit',
+            PackagesEdit::class
+        )
             ->whereNumber('id')
             ->name('packages.edit');
     });
@@ -336,7 +448,8 @@ Route::middleware([
     | OPERASIONAL ADMIN
     |--------------------------------------------------------------------------
     |
-    | Kalender, Linked dan Announcement hanya dapat diakses oleh:
+    | Kalender, Linked, dan Announcement dapat diakses oleh:
+    |
     | - administrator
     | - admin
     |
@@ -344,20 +457,30 @@ Route::middleware([
 
     Route::middleware('role:administrator,admin')->group(function () {
 
-        // KALENDER
+        /*
+         * Kalender.
+         */
         Route::get('/kalender', KalenderIndex::class)
             ->name('kalender.index');
 
-        Route::get('/kalender/create', KalenderCreate::class)
-            ->name('kalender.create');
+        Route::get(
+            '/kalender/create',
+            KalenderCreate::class
+        )->name('kalender.create');
 
-        // LINKED
+        /*
+         * Linked.
+         */
         Route::get('/linked', LinkedIndex::class)
             ->name('linked.index');
 
-        // ANNOUNCEMENT
-        Route::get('/announcement', AnnouncementController::class)
-            ->name('announcement.index');
+        /*
+         * Announcement.
+         */
+        Route::get(
+            '/announcement',
+            AnnouncementController::class
+        )->name('announcement.index');
     });
 
     /*

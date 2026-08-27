@@ -1,139 +1,251 @@
+@props([
+    'role' => 'teacher',
+])
+
 <form wire:submit.prevent="save">
+    {{-- PILIH JENIS AKUN --}}
+    <div class="mb-6">
+        <label class="text-heading mb-3 block text-sm font-medium">
+            Jenis Akun
+        </label>
 
-<div class="grid gap-6 mb-6 md:grid-cols-2">
+        <div class="grid gap-4 md:grid-cols-2">
+            {{-- ADMIN --}}
+            <label
+                class="rounded-base border-default-medium hover:bg-neutral-secondary-medium flex cursor-pointer items-start gap-3 border p-4">
+                <input class="mt-1 h-4 w-4" type="radio" value="admin" wire:model.live="role">
 
-    <!-- NAME -->
-    <div>
-        <label class="block mb-2.5 text-sm font-medium text-heading">Full Name</label>
-        <input type="text"
-            wire:model.defer="name"
-            class="bg-neutral-secondary-medium border border-default-medium text-heading text-sm rounded-base focus:ring-brand focus:border-brand block w-full px-3 py-2.5 shadow-xs"
-            placeholder="John Doe" />
+                <div>
+                    <p class="text-heading font-medium">
+                        Admin
+                    </p>
 
-        @error('name')
-        <span class="text-red-500 text-sm">{{ $message }}</span>
+                    <p class="mt-1 text-sm text-gray-500">
+                        Dapat mengelola kelas, materi, paket,
+                        kalender, tautan, dan pengumuman.
+                    </p>
+                </div>
+            </label>
+
+            {{-- TEACHER --}}
+            <label
+                class="rounded-base border-default-medium hover:bg-neutral-secondary-medium flex cursor-pointer items-start gap-3 border p-4">
+                <input class="mt-1 h-4 w-4" type="radio" value="teacher" wire:model.live="role">
+
+                <div>
+                    <p class="text-heading font-medium">
+                        Teacher
+                    </p>
+
+                    <p class="mt-1 text-sm text-gray-500">
+                        Dapat mengelola materi pembelajaran
+                        pada kelas yang ditugaskan.
+                    </p>
+                </div>
+            </label>
+        </div>
+
+        @error('role')
+            <span class="mt-2 block text-sm text-red-500">
+                {{ $message }}
+            </span>
         @enderror
     </div>
 
-    <!-- EMAIL -->
-    <div>
-        <label class="block mb-2.5 text-sm font-medium text-heading">Email</label>
-        <input type="email"
-            wire:model.defer="email"
-            class="bg-neutral-secondary-medium border border-default-medium text-heading text-sm rounded-base focus:ring-brand focus:border-brand block w-full px-3 py-2.5 shadow-xs"
-            placeholder="teacher@email.com" />
+    {{-- DATA AKUN --}}
+    <div class="mb-6">
+        <h2 class="text-heading mb-4 text-lg font-semibold">
+            Informasi Akun
+        </h2>
 
-        @error('email')
-        <span class="text-red-500 text-sm">{{ $message }}</span>
-        @enderror
+        <div class="grid gap-6 md:grid-cols-2">
+            {{-- NAME --}}
+            <div>
+                <label class="text-heading mb-2.5 block text-sm font-medium">
+                    Full Name
+                </label>
+
+                <input
+                    class="rounded-base border-default-medium bg-neutral-secondary-medium text-heading shadow-xs focus:border-brand focus:ring-brand block w-full border px-3 py-2.5 text-sm"
+                    placeholder="John Doe" type="text" wire:model.defer="name">
+
+                @error('name')
+                    <span class="mt-1 block text-sm text-red-500">
+                        {{ $message }}
+                    </span>
+                @enderror
+            </div>
+
+            {{-- EMAIL --}}
+            <div>
+                <label class="text-heading mb-2.5 block text-sm font-medium">
+                    Email
+                </label>
+
+                <input
+                    class="rounded-base border-default-medium bg-neutral-secondary-medium text-heading shadow-xs focus:border-brand focus:ring-brand block w-full border px-3 py-2.5 text-sm"
+                    placeholder="{{ $role === 'teacher' ? 'teacher@email.com' : 'admin@email.com' }}"
+                    type="email" wire:model.defer="email">
+
+                @error('email')
+                    <span class="mt-1 block text-sm text-red-500">
+                        {{ $message }}
+                    </span>
+                @enderror
+            </div>
+        </div>
     </div>
 
-    <!-- PHONE -->
-    <div>
-        <label class="block mb-2.5 text-sm font-medium text-heading">Phone</label>
-        <input type="text"
-            wire:model.defer="phone"
-            class="bg-neutral-secondary-medium border border-default-medium text-heading text-sm rounded-base focus:ring-brand focus:border-brand block w-full px-3 py-2.5 shadow-xs"
-            placeholder="08123456789" />
+    {{-- DATA KHUSUS TEACHER --}}
+    @if ($role === 'teacher')
+        <div class="rounded-base border-default bg-neutral-primary-soft mb-6 border p-5"
+            wire:key="teacher-profile-fields">
+            <div class="mb-5">
+                <h2 class="text-heading text-lg font-semibold">
+                    Profil Teacher
+                </h2>
 
-        @error('phone')
-        <span class="text-red-500 text-sm">{{ $message }}</span>
-        @enderror
+                <p class="mt-1 text-sm text-gray-500">
+                    Informasi berikut hanya diperlukan untuk akun teacher.
+                </p>
+            </div>
+
+            <div class="grid gap-6 md:grid-cols-2">
+                {{-- PHONE --}}
+                <div>
+                    <label class="text-heading mb-2.5 block text-sm font-medium">
+                        Phone
+                    </label>
+
+                    <input
+                        class="rounded-base border-default-medium bg-neutral-secondary-medium text-heading shadow-xs focus:border-brand focus:ring-brand block w-full border px-3 py-2.5 text-sm"
+                        placeholder="08123456789" type="text" wire:model.defer="phone">
+
+                    @error('phone')
+                        <span class="mt-1 block text-sm text-red-500">
+                            {{ $message }}
+                        </span>
+                    @enderror
+                </div>
+
+                {{-- COMPANY --}}
+                <div>
+                    <label class="text-heading mb-2.5 block text-sm font-medium">
+                        Company / Institution
+                    </label>
+
+                    <input
+                        class="rounded-base border-default-medium bg-neutral-secondary-medium text-heading shadow-xs focus:border-brand focus:ring-brand block w-full border px-3 py-2.5 text-sm"
+                        placeholder="Universitas / Sekolah / Freelance" type="text" wire:model.defer="company">
+
+                    @error('company')
+                        <span class="mt-1 block text-sm text-red-500">
+                            {{ $message }}
+                        </span>
+                    @enderror
+                </div>
+
+                {{-- SPECIALIZATION --}}
+                <div>
+                    <label class="text-heading mb-2.5 block text-sm font-medium">
+                        Specialization
+                    </label>
+
+                    <input
+                        class="rounded-base border-default-medium bg-neutral-secondary-medium text-heading shadow-xs focus:border-brand focus:ring-brand block w-full border px-3 py-2.5 text-sm"
+                        placeholder="Mathematics, Physics, English" type="text" wire:model.defer="specialization">
+
+                    @error('specialization')
+                        <span class="mt-1 block text-sm text-red-500">
+                            {{ $message }}
+                        </span>
+                    @enderror
+                </div>
+
+                {{-- EXPERIENCE --}}
+                <div>
+                    <label class="text-heading mb-2.5 block text-sm font-medium">
+                        Experience (Years)
+                    </label>
+
+                    <input
+                        class="rounded-base border-default-medium bg-neutral-secondary-medium text-heading shadow-xs focus:border-brand focus:ring-brand block w-full border px-3 py-2.5 text-sm"
+                        max="100" min="0" placeholder="5" type="number"
+                        wire:model.defer="experience_years">
+
+                    @error('experience_years')
+                        <span class="mt-1 block text-sm text-red-500">
+                            {{ $message }}
+                        </span>
+                    @enderror
+                </div>
+            </div>
+
+            {{-- BIO --}}
+            <div class="mt-6">
+                <label class="text-heading mb-2.5 block text-sm font-medium">
+                    Bio
+                </label>
+
+                <textarea
+                    class="rounded-base border-default-medium bg-neutral-secondary-medium text-heading shadow-xs focus:border-brand focus:ring-brand block w-full border px-3 py-2.5 text-sm"
+                    placeholder="Short biography about teacher" rows="4" wire:model.defer="bio"></textarea>
+
+                @error('bio')
+                    <span class="mt-1 block text-sm text-red-500">
+                        {{ $message }}
+                    </span>
+                @enderror
+            </div>
+        </div>
+    @endif
+
+    {{-- PASSWORD --}}
+    <div class="mb-6 grid gap-6 md:grid-cols-2">
+        <div>
+            <label class="text-heading mb-2.5 block text-sm font-medium">
+                Password
+            </label>
+
+            <input
+                class="rounded-base border-default-medium bg-neutral-secondary-medium text-heading shadow-xs focus:border-brand focus:ring-brand block w-full border px-3 py-2.5 text-sm"
+                placeholder="••••••••" type="password" wire:model.defer="password">
+
+            @error('password')
+                <span class="mt-1 block text-sm text-red-500">
+                    {{ $message }}
+                </span>
+            @enderror
+        </div>
+
+        <div>
+            <label class="text-heading mb-2.5 block text-sm font-medium">
+                Confirm Password
+            </label>
+
+            <input
+                class="rounded-base border-default-medium bg-neutral-secondary-medium text-heading shadow-xs focus:border-brand focus:ring-brand block w-full border px-3 py-2.5 text-sm"
+                placeholder="••••••••" type="password" wire:model.defer="password_confirmation">
+        </div>
     </div>
 
-    <!-- COMPANY -->
-    <div>
-        <label class="block mb-2.5 text-sm font-medium text-heading">Company / Institution</label>
-        <input type="text"
-            wire:model.defer="company"
-            class="bg-neutral-secondary-medium border border-default-medium text-heading text-sm rounded-base focus:ring-brand focus:border-brand block w-full px-3 py-2.5 shadow-xs"
-            placeholder="Universitas / Sekolah / Freelance" />
+    {{-- ACTION --}}
+    <div class="flex items-center gap-3">
+        <button
+            class="rounded-base bg-brand shadow-xs hover:bg-brand-strong px-4 py-2.5 text-sm font-medium text-white disabled:opacity-50"
+            type="submit" wire:loading.attr="disabled" wire:target="save">
+            <span wire:loading.remove wire:target="save">
+                {{ $role === 'teacher' ? 'Register Teacher' : 'Register Admin' }}
+            </span>
 
-        @error('company')
-        <span class="text-red-500 text-sm">{{ $message }}</span>
-        @enderror
+            <span wire:loading wire:target="save">
+                Saving...
+            </span>
+        </button>
+
+        <a class="rounded-base border-default hover:bg-neutral-secondary-medium border px-4 py-2.5 text-sm font-medium"
+            href="{{ route('teacher.index') }}" wire:navigate>
+            Batal
+        </a>
     </div>
-
-    <!-- SPECIALIZATION -->
-    <div>
-        <label class="block mb-2.5 text-sm font-medium text-heading">Specialization</label>
-        <input type="text"
-            wire:model.defer="specialization"
-            class="bg-neutral-secondary-medium border border-default-medium text-heading text-sm rounded-base focus:ring-brand focus:border-brand block w-full px-3 py-2.5 shadow-xs"
-            placeholder="Mathematics, Physics, English" />
-
-        @error('specialization')
-        <span class="text-red-500 text-sm">{{ $message }}</span>
-        @enderror
-    </div>
-
-    <!-- EXPERIENCE -->
-    <div>
-        <label class="block mb-2.5 text-sm font-medium text-heading">Experience (Years)</label>
-        <input type="number"
-            wire:model.defer="experience_years"
-            class="bg-neutral-secondary-medium border border-default-medium text-heading text-sm rounded-base focus:ring-brand focus:border-brand block w-full px-3 py-2.5 shadow-xs"
-            placeholder="5" />
-
-        @error('experience_years')
-        <span class="text-red-500 text-sm">{{ $message }}</span>
-        @enderror
-    </div>
-
-</div>
-
-
-<!-- BIO -->
-<div class="mb-6">
-    <label class="block mb-2.5 text-sm font-medium text-heading">Bio</label>
-    <textarea
-        wire:model.defer="bio"
-        rows="4"
-        class="bg-neutral-secondary-medium border border-default-medium text-heading text-sm rounded-base focus:ring-brand focus:border-brand block w-full px-3 py-2.5 shadow-xs"
-        placeholder="Short biography about teacher"></textarea>
-
-    @error('bio')
-    <span class="text-red-500 text-sm">{{ $message }}</span>
-    @enderror
-</div>
-
-
-<!-- PASSWORD -->
-<div class="mb-6">
-    <label class="block mb-2.5 text-sm font-medium text-heading">Password</label>
-    <input type="password"
-        wire:model.defer="password"
-        class="bg-neutral-secondary-medium border border-default-medium text-heading text-sm rounded-base focus:ring-brand focus:border-brand block w-full px-3 py-2.5 shadow-xs"
-        placeholder="••••••••" />
-
-    @error('password')
-    <span class="text-red-500 text-sm">{{ $message }}</span>
-    @enderror
-</div>
-
-
-<!-- CONFIRM PASSWORD -->
-<div class="mb-6">
-    <label class="block mb-2.5 text-sm font-medium text-heading">Confirm Password</label>
-    <input type="password"
-        wire:model.defer="password_confirmation"
-        class="bg-neutral-secondary-medium border border-default-medium text-heading text-sm rounded-base focus:ring-brand focus:border-brand block w-full px-3 py-2.5 shadow-xs"
-        placeholder="••••••••" />
-</div>
-
-
-    <button type="submit"
-    wire:loading.attr="disabled"
-    class="text-white bg-brand hover:bg-brand-strong focus:ring-4 focus:ring-brand-medium shadow-xs font-medium rounded-base text-sm px-4 py-2.5">
-
-        <span wire:loading.remove wire:target="save">
-        Register Teacher
-        </span>
-
-        <span wire:loading wire:target="save">
-        Saving...
-        </span>
-
-    </button>
-
 </form>

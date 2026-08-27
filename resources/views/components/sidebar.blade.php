@@ -26,10 +26,10 @@
                         Siswa
                     </flux:sidebar.item>
 
-                    <flux:sidebar.item :current="request()->routeIs('teacher*')"
+                    <flux:sidebar.item :current="request()->routeIs('teacher.*', 'admin.*')"
                         class="font-medium hover:bg-zinc-800 hover:text-white data-[current]:bg-zinc-800 data-[current]:text-white"
-                        href="{{ route('teacher.index') }}" icon="user" wire:navigate>
-                        Teacher
+                        href="{{ route('teacher.index') }}" icon="users" wire:navigate>
+                        Admin dan Teacher
                     </flux:sidebar.item>
                 </flux:sidebar.group>
             @endif

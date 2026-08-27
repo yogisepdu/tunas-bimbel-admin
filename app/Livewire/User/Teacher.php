@@ -8,46 +8,92 @@ use Livewire\Component;
 
 class Teacher extends Component
 {
-    public string $title = 'Teacher';
-
-    public function render()
+    /**
+     * Seluruh halaman Admin dan Teacher
+     * hanya boleh diakses administrator.
+     */
+    private function ensureAdministrator(): void
     {
-        /*
-        |--------------------------------------------------------------------------
-        | Ambil seluruh akun dengan role teacher
-        |--------------------------------------------------------------------------
-        */
-        $teachers = User::query()
-            ->where('role', 'teacher')
-            ->with('teacher')
-            ->latest()
-            ->get();
-
-        return view(
-            'livewire.user.teacher',
-            compact('teachers')
-        )->layout('layouts.admin', [
-            'title' => $this->title,
-        ]);
+        abort_unless(
+            auth()->check()
+                && auth()->user()->role === 'administrator',
+            403
+        );
     }
 
-    public function delete(int $id): void
+    public function deleteAdmin($userId): void
     {
-        $user = User::query()
-            ->where('role', 'teacher')
-            ->findOrFail($id);
+        $this->ensureAdministrator();
 
-        DB::transaction(function () use ($user) {
+        $admin = User::query()
+            ->where('role', 'admin')
+            ->findOrFail($userId);
+
+        $admin->delete();
+
+        session()->flash(
+            'success',
+            'Akun admin berhasil dihapus.'
+        );
+    }
+
+    public function deleteTeacher($userId): void
+    {
+        $this->ensureAdministrator();
+
+        $teacherUser = User::query()
+            ->where('role', 'teacher')
+            ->with('teacher')
+            ->findOrFail($userId);
+
+        DB::transaction(function () use ($teacherUser) {
             /*
-            | Data pada tabel teachers ikut terhapus karena
-            | foreign key menggunakan cascadeOnDelete.
-            */
-            $user->delete();
+             * Lepaskan hubungan teacher dengan kelas
+             * sebelum profil teacher dihapus.
+             */
+            if ($teacherUser->teacher) {
+                $teacherUser->teacher
+                    ->classes()
+                    ->detach();
+
+                $teacherUser->teacher->delete();
+            }
+
+            $teacherUser->delete();
         });
 
         session()->flash(
             'success',
             'Akun teacher berhasil dihapus.'
         );
+    }
+
+    public function render()
+    {
+        $this->ensureAdministrator();
+
+        /*
+         * Akun Admin.
+         */
+        $admins = User::query()
+            ->where('role', 'admin')
+            ->orderBy('name')
+            ->get();
+
+        /*
+         * Akun Teacher beserta profilnya.
+         */
+        $teachers = User::query()
+            ->where('role', 'teacher')
+            ->with('teacher')
+            ->orderBy('name')
+            ->get();
+
+        return view('livewire.user.teacher', [
+            'admins' => $admins,
+            'teachers' => $teachers,
+        ])->layout('layouts.admin', [
+            'title' => 'Admin dan Teacher',
+        ]);
     }
 }

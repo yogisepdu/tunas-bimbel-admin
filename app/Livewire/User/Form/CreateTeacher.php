@@ -6,16 +6,37 @@ use App\Models\Teacher;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Validation\Rule;
 use Livewire\Component;
 use Throwable;
 
 class CreateTeacher extends Component
 {
+    /*
+    |--------------------------------------------------------------------------
+    | PILIHAN ROLE
+    |--------------------------------------------------------------------------
+    */
+
+    public $role = 'teacher';
+
+    /*
+    |--------------------------------------------------------------------------
+    | DATA AKUN
+    |--------------------------------------------------------------------------
+    */
+
     public $name = '';
     public $email = '';
 
     public $password = '';
     public $password_confirmation = '';
+
+    /*
+    |--------------------------------------------------------------------------
+    | DATA KHUSUS TEACHER
+    |--------------------------------------------------------------------------
+    */
 
     public $phone = '';
     public $company = '';
@@ -23,32 +44,103 @@ class CreateTeacher extends Component
     public $experience_years = null;
     public $bio = '';
 
+    /**
+     * Halaman hanya dapat diakses administrator.
+     */
+    private function ensureAdministrator(): void
+    {
+        abort_unless(
+            auth()->check()
+                && auth()->user()->role === 'administrator',
+            403
+        );
+    }
+
+    public function mount(): void
+    {
+        $this->ensureAdministrator();
+    }
+
+    /**
+     * Menghapus pesan validasi field teacher
+     * ketika pilihan role berubah.
+     */
+    public function updatedRole($value): void
+    {
+        $this->resetValidation([
+            'role',
+            'phone',
+            'company',
+            'specialization',
+            'experience_years',
+            'bio',
+        ]);
+    }
+
     public function save()
     {
+        $this->ensureAdministrator();
+
         /*
         |--------------------------------------------------------------------------
-        | Bersihkan input
+        | BERSIHKAN INPUT
         |--------------------------------------------------------------------------
         */
-        $this->name = trim((string) $this->name);
+
+        $this->role = strtolower(
+            trim((string) $this->role)
+        );
+
+        $this->name = trim(
+            (string) $this->name
+        );
+
         $this->email = strtolower(
             trim((string) $this->email)
         );
 
-        $this->phone = trim((string) $this->phone);
-        $this->company = trim((string) $this->company);
+        $this->phone = trim(
+            (string) $this->phone
+        );
+
+        $this->company = trim(
+            (string) $this->company
+        );
+
         $this->specialization = trim(
             (string) $this->specialization
         );
 
-        $this->bio = trim((string) $this->bio);
+        $this->bio = trim(
+            (string) $this->bio
+        );
+
+        if ($this->experience_years === '') {
+            $this->experience_years = null;
+        }
 
         /*
         |--------------------------------------------------------------------------
-        | Validasi
+        | VALIDASI
         |--------------------------------------------------------------------------
+        |
+        | Jika role teacher:
+        | - Phone wajib.
+        | - Specialization wajib.
+        |
+        | Jika role admin:
+        | - Field teacher tidak wajib.
+        |
         */
+
         $validated = $this->validate([
+            'role' => [
+                'required',
+                Rule::in([
+                    'admin',
+                    'teacher',
+                ]),
+            ],
             'name' => [
                 'required',
                 'string',
@@ -67,7 +159,9 @@ class CreateTeacher extends Component
                 'confirmed',
             ],
             'phone' => [
-                'required',
+                $this->role === 'teacher'
+                    ? 'required'
+                    : 'nullable',
                 'string',
                 'max:30',
             ],
@@ -77,7 +171,9 @@ class CreateTeacher extends Component
                 'max:255',
             ],
             'specialization' => [
-                'required',
+                $this->role === 'teacher'
+                    ? 'required'
+                    : 'nullable',
                 'string',
                 'max:255',
             ],
@@ -93,11 +189,17 @@ class CreateTeacher extends Component
                 'max:2000',
             ],
         ], [
+            'role.required' =>
+            'Jenis akun wajib dipilih.',
+
+            'role.in' =>
+            'Jenis akun yang dipilih tidak valid.',
+
             'name.required' =>
-            'Nama teacher wajib diisi.',
+            'Nama lengkap wajib diisi.',
 
             'email.required' =>
-            'Email teacher wajib diisi.',
+            'Email wajib diisi.',
 
             'email.email' =>
             'Format email tidak valid.',
@@ -115,7 +217,7 @@ class CreateTeacher extends Component
             'Konfirmasi password tidak sama.',
 
             'phone.required' =>
-            'Nomor telepon wajib diisi.',
+            'Nomor telepon teacher wajib diisi.',
 
             'specialization.required' =>
             'Spesialisasi teacher wajib diisi.',
@@ -128,47 +230,59 @@ class CreateTeacher extends Component
             DB::transaction(function () use ($validated) {
                 /*
                 |--------------------------------------------------------------------------
-                | Simpan akun utama ke tabel users
+                | SIMPAN KE TABEL USERS
                 |--------------------------------------------------------------------------
                 */
+
                 $user = User::create([
                     'name' => $validated['name'],
                     'email' => $validated['email'],
                     'password' => Hash::make(
                         $validated['password']
                     ),
-                    'role' => 'teacher',
+                    'role' => $validated['role'],
                 ]);
 
                 /*
-                |--------------------------------------------------------------------------
-                | Teacher dibuat oleh admin sehingga langsung diverifikasi
-                |--------------------------------------------------------------------------
-                */
-                $user->email_verified_at = now();
-                $user->save();
+                 * Akun dibuat langsung oleh administrator,
+                 * sehingga email langsung diverifikasi.
+                 */
+                $user->forceFill([
+                    'email_verified_at' => now(),
+                ])->save();
 
                 /*
                 |--------------------------------------------------------------------------
-                | Simpan data tambahan ke tabel teachers
+                | SIMPAN PROFIL TEACHER
                 |--------------------------------------------------------------------------
+                |
+                | Hanya dijalankan jika role yang dipilih adalah teacher.
+                |
                 */
-                Teacher::create([
-                    'user_id' => $user->id,
-                    'phone' => $validated['phone'],
-                    'company' =>
-                    $validated['company'] ?: null,
-                    'specialization' =>
-                    $validated['specialization'],
-                    'experience_years' =>
-                    $validated['experience_years'] ?: null,
-                    'bio' => $validated['bio'] ?: null,
-                ]);
+
+                if ($validated['role'] === 'teacher') {
+                    Teacher::create([
+                        'user_id' => $user->id,
+                        'phone' => $validated['phone'],
+                        'company' =>
+                        $validated['company'] ?: null,
+                        'specialization' =>
+                        $validated['specialization'],
+                        'experience_years' =>
+                        $validated['experience_years'] ?? null,
+                        'bio' =>
+                        $validated['bio'] ?: null,
+                    ]);
+                }
             });
+
+            $accountName = $validated['role'] === 'teacher'
+                ? 'Teacher'
+                : 'Admin';
 
             session()->flash(
                 'success',
-                'Akun teacher berhasil dibuat.'
+                "Akun {$accountName} berhasil dibuat."
             );
 
             return $this->redirect(
@@ -180,7 +294,7 @@ class CreateTeacher extends Component
 
             session()->flash(
                 'error',
-                'Akun teacher gagal dibuat. Silakan coba kembali.'
+                'Akun gagal dibuat. Silakan coba kembali.'
             );
 
             return null;
@@ -189,8 +303,12 @@ class CreateTeacher extends Component
 
     public function render()
     {
+        $this->ensureAdministrator();
+
         return view(
             'livewire.user.form.create-teacher'
-        )->layout('layouts.admin');
+        )->layout('layouts.admin', [
+            'title' => 'Tambah Admin atau Teacher',
+        ]);
     }
 }
