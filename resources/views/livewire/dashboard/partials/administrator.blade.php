@@ -136,8 +136,7 @@
                         {{ $newUsersThisMonth }} akun baru
                     </p>
 
-                    <p
-                        class="{{ $userGrowth >= 0 ? 'text-emerald-600' : 'text-red-600' }} text-xs">
+                    <p class="{{ $userGrowth >= 0 ? 'text-emerald-600' : 'text-red-600' }} text-xs">
                         {{ $userGrowth >= 0 ? '+' : '' }}{{ $userGrowth }}%
                     </p>
                 </div>
