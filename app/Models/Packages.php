@@ -3,6 +3,8 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Facades\Storage;
 
 class Packages extends Model
@@ -13,11 +15,23 @@ class Packages extends Model
         'name',
         'description',
         'price',
-        'image'
+        'image',
     ];
 
-    // 🔥 relasi ke kelas (pivot)
-    public function classes()
+    protected function casts(): array
+    {
+        return [
+            'price' => 'decimal:2',
+        ];
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Classes
+    |--------------------------------------------------------------------------
+    */
+
+    public function classes(): BelongsToMany
     {
         return $this->belongsToMany(
             ClassRoom::class,
@@ -27,31 +41,75 @@ class Packages extends Model
         );
     }
 
-    public function users()
+    /*
+    |--------------------------------------------------------------------------
+    | Users
+    |--------------------------------------------------------------------------
+    */
+
+    public function users(): BelongsToMany
     {
         return $this->belongsToMany(
             User::class,
             'user_packages',
             'package_id',
             'user_id'
+        )
+            ->withPivot([
+                'transaction_id',
+                'status',
+                'activated_at',
+                'expires_at',
+            ])
+            ->withTimestamps();
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Transactions
+    |--------------------------------------------------------------------------
+    */
+
+    public function transactions(): HasMany
+    {
+        return $this->hasMany(
+            Transaction::class,
+            'package_id'
         );
     }
 
-    // 🔥 optional (kalau mau akses pivot langsung)
-    public function packageClasses()
+    /*
+    |--------------------------------------------------------------------------
+    | Package Classes Pivot
+    |--------------------------------------------------------------------------
+    */
+
+    public function packageClasses(): HasMany
     {
-        return $this->hasMany(PackagesClasses::class, 'package_id');
+        return $this->hasMany(
+            PackagesClasses::class,
+            'package_id'
+        );
     }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Delete Image
+    |--------------------------------------------------------------------------
+    */
 
     protected static function booted()
     {
         static::deleting(function ($package) {
 
-            // 🔥 hapus gambar
-            if ($package->image && Storage::disk('public')->exists($package->image)) {
-                Storage::disk('public')->delete($package->image);
+            if (
+                $package->image
+                && Storage::disk('public')
+                ->exists($package->image)
+            ) {
+                Storage::disk('public')
+                    ->delete($package->image);
             }
-
         });
     }
 }

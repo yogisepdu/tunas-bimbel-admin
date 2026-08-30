@@ -109,6 +109,35 @@
                 </flux:sidebar.group>
             @endif
 
+            {{-- TRANSAKSI --}}
+            @if ($isAdmin)
+                <flux:sidebar.group class="grid" expandable heading="Transaksi">
+
+                    <flux:sidebar.item
+                        :current="
+                                                                                                                                                                request()->routeIs(
+                                                                                                                                                                    'payment-methods.*'
+                                                                                                                                                                )
+                                                                                                                                                            "
+                        class="font-medium hover:bg-zinc-800 hover:text-white data-[current]:bg-zinc-800 data-[current]:text-white"
+                        href="{{ route('payment-methods.index') }}" icon="credit-card" wire:navigate>
+                        Metode Pembayaran
+                    </flux:sidebar.item>
+
+                    <flux:sidebar.item
+                        :current="
+                                                                                                                request()->routeIs(
+                                                                                                                    'transactions.*'
+                                                                                                                )
+                                                                                                            "
+                        class="font-medium hover:bg-zinc-800 hover:text-white data-[current]:bg-zinc-800 data-[current]:text-white"
+                        href="{{ route('transactions.index') }}" icon="clipboard-document-list" wire:navigate>
+                        Transaksi Paket
+                    </flux:sidebar.item>
+
+                </flux:sidebar.group>
+            @endif
+
             <!-- Kalender -->
             @if ($isAdmin)
                 <flux:sidebar.item :current="request()->routeIs('kalender*')"

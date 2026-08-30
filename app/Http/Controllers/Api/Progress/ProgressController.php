@@ -5,137 +5,385 @@ namespace App\Http\Controllers\Api\Progress;
 use App\Http\Controllers\Controller;
 use App\Models\QuizResult;
 use App\Models\UserLearningProgress;
+use App\Services\AssessmentScoringService;
+use App\Support\StudentAccess;
 use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
 
 class ProgressController extends Controller
 {
-    public function store(Request $request)
-    {
+    public function store(
+        Request $request
+    ) {
+        $user = $request->user();
+
+        StudentAccess::ensureStudent(
+            $user
+        );
+
         $data = $request->validate([
-            'chapter_id' => 'required',
-            'video_id' => 'nullable',
-            'pdf_id' => 'nullable',
-            'quiz_id' => 'nullable',
+            'chapter_id' => [
+                'required',
+                'integer',
+            ],
+
+            'video_id' => [
+                'nullable',
+                'integer',
+            ],
+
+            'pdf_id' => [
+                'nullable',
+                'integer',
+            ],
+
+            'quiz_id' => [
+                'nullable',
+                'integer',
+            ],
         ]);
 
-        $userId = auth()->id();
+        $chapter =
+            StudentAccess::chapter(
+                $user,
+                (int) $data['chapter_id']
+            );
 
-        // 🔥 AMBIL DATA PROGRESS YANG SUDAH ADA
-        $progress = UserLearningProgress::firstOrNew([
-            'user_id' => $userId,
-            'chapter_id' => $data['chapter_id'],
-        ]);
+        if (
+            ! empty($data['video_id'])
+        ) {
+            $video =
+                StudentAccess::video(
+                    $user,
+                    (int)
+                    $data['video_id']
+                );
 
-        // 🔥 UPDATE FIELD TANPA MENGHAPUS YANG LAMA
-        if (!empty($data['video_id'])) {
-            $progress->video_id = $data['video_id'];
+            if (
+                (int)
+                $video->chapter_id
+                !==
+                (int)
+                $chapter->id
+            ) {
+                throw ValidationException::withMessages([
+                    'video_id' =>
+                    'Video tidak termasuk dalam chapter ini.',
+                ]);
+            }
         }
 
-        if (!empty($data['pdf_id'])) {
-            $progress->pdf_id = $data['pdf_id'];
+        if (
+            ! empty($data['pdf_id'])
+        ) {
+            $pdf =
+                StudentAccess::pdf(
+                    $user,
+                    (int)
+                    $data['pdf_id']
+                );
+
+            if (
+                (int)
+                $pdf->chapter_id
+                !==
+                (int)
+                $chapter->id
+            ) {
+                throw ValidationException::withMessages([
+                    'pdf_id' =>
+                    'PDF tidak termasuk dalam chapter ini.',
+                ]);
+            }
         }
 
-        if (!empty($data['quiz_id'])) {
-            $progress->quiz_id = $data['quiz_id'];
+        if (
+            ! empty($data['quiz_id'])
+        ) {
+            $quiz =
+                StudentAccess::quiz(
+                    $user,
+                    (int)
+                    $data['quiz_id']
+                );
+
+            if (
+                (int)
+                $quiz->class_id
+                !==
+                (int)
+                $chapter->class_id
+            ) {
+                throw ValidationException::withMessages([
+                    'quiz_id' =>
+                    'Quiz tidak termasuk dalam kelas chapter ini.',
+                ]);
+            }
         }
 
-        // 🔥 HITUNG PROGRESS
+        $progress =
+            UserLearningProgress::firstOrNew([
+                'user_id' =>
+                $user->id,
+
+                'chapter_id' =>
+                $chapter->id,
+            ]);
+
+        if (
+            ! empty($data['video_id'])
+        ) {
+            $progress->video_id =
+                $data['video_id'];
+        }
+
+        if (
+            ! empty($data['pdf_id'])
+        ) {
+            $progress->pdf_id =
+                $data['pdf_id'];
+        }
+
+        if (
+            ! empty($data['quiz_id'])
+        ) {
+            $progress->quiz_id =
+                $data['quiz_id'];
+        }
+
         $done = 0;
 
-        if ($progress->video_id) $done++;
-        if ($progress->pdf_id) $done++;
-        if ($progress->quiz_id) $done++;
+        if ($progress->video_id) {
+            $done++;
+        }
 
-        $total = 3;
+        if ($progress->pdf_id) {
+            $done++;
+        }
 
-        $progress->progress_percent = intval(($done / $total) * 100);
+        if ($progress->quiz_id) {
+            $done++;
+        }
 
-        // 🔥 STATUS
-        $progress->status = $progress->progress_percent >= 100;
+        $progress->progress_percent =
+            (int) (
+                ($done / 3)
+                * 100
+            );
+
+        $progress->status =
+            $progress->progress_percent
+            >= 100;
 
         $progress->save();
 
         return response()->json([
             'success' => true,
-            'data' => $progress
+            'data' => $progress,
         ]);
     }
 
-    public function storeResult(Request $request)
-    {
+    /**
+     * Server-side scoring.
+     *
+     * Client TIDAK mengirim score/correct/wrong/empty lagi.
+     */
+    public function storeResult(
+        Request $request,
+        AssessmentScoringService $scoring
+    ) {
         $user = $request->user();
+
+        StudentAccess::ensureStudent(
+            $user
+        );
 
         $data = $request->validate([
-            'quiz_id' => 'required|integer',
-            'score' => 'required|integer',
-            'correct' => 'required|integer',
-            'wrong' => 'required|integer',
-            'empty' => 'required|integer',
-            'answers' => 'nullable|array',
+            'attempt_token' => [
+                'required',
+                'uuid',
+            ],
+
+            'answers' => [
+                'present',
+                'array',
+            ],
         ]);
 
-        $result = QuizResult::create([
-            'user_id' => $user->id,
-            'quiz_id' => $data['quiz_id'],
-            'score' => $data['score'],
-            'correct' => $data['correct'],
-            'wrong' => $data['wrong'],
-            'empty' => $data['empty'],
-            'answers' => json_encode($data['answers']),
-        ]);
+        $calculated =
+            $scoring->submitQuiz(
+                $user,
+                $data['attempt_token'],
+                $data['answers']
+            );
+
+        $quiz = StudentAccess::quiz(
+            $user,
+            (int) $calculated['quiz']->id
+        );
 
         return response()->json([
-            'message' => 'Result berhasil disimpan',
-            'data' => $result
+            'message' =>
+            'Quiz berhasil dinilai oleh server.',
+
+            'data' => [
+                'result_id' =>
+                $calculated['result']->id,
+
+                'quiz_id' =>
+                $quiz->id,
+
+                'score' =>
+                $calculated['score'],
+
+                'correct' =>
+                $calculated['correct'],
+
+                'wrong' =>
+                $calculated['wrong'],
+
+                'empty' =>
+                $calculated['empty'],
+
+                'review' =>
+                $calculated['review'],
+            ],
         ]);
     }
 
-    public function checkQuizProgress(Request $request, $chapterId)
-    {
+    public function checkQuizProgress(
+        Request $request,
+        $chapterId
+    ) {
         $user = $request->user();
 
-        $progress = UserLearningProgress::where('user_id', $user->id)
-            ->where('chapter_id', $chapterId)
-            ->whereNotNull('quiz_id')
+        StudentAccess::ensureStudent(
+            $user
+        );
+
+        $chapter =
+            StudentAccess::chapter(
+                $user,
+                (int) $chapterId
+            );
+
+        $progress =
+            UserLearningProgress::query()
+            ->where(
+                'user_id',
+                $user->id
+            )
+            ->where(
+                'chapter_id',
+                $chapter->id
+            )
+            ->whereNotNull(
+                'quiz_id'
+            )
             ->first();
 
-        if (!$progress) {
+        if (! $progress) {
             return response()->json([
-                'has_done' => false
+                'has_done' => false,
+                'result' => null,
             ]);
         }
 
-        $result = QuizResult::where('user_id', $user->id)
-            ->where('quiz_id', $progress->quiz_id)
+        StudentAccess::quiz(
+            $user,
+            (int) $progress->quiz_id
+        );
+
+        $result = QuizResult::query()
+            ->where(
+                'user_id',
+                $user->id
+            )
+            ->where(
+                'quiz_id',
+                $progress->quiz_id
+            )
             ->latest()
             ->first();
 
+        if (! $result) {
+            return response()->json([
+                'has_done' => false,
+                'result' => null,
+            ]);
+        }
+
         return response()->json([
             'has_done' => true,
+
             'result' => [
                 ...$result->toArray(),
-                'answers' => json_decode($result->answers, true),
-            ]
+
+                'answers' =>
+                json_decode(
+                    $result->answers,
+                    true
+                ),
+            ],
         ]);
     }
 
-    public function leaderboard($quizId)
-    {
-        $results = QuizResult::with('user')
-            ->where('quiz_id', $quizId)
-            ->orderByDesc('score')
-            ->orderBy('created_at')
+    public function leaderboard(
+        $quizId
+    ) {
+        $user = auth()->user();
+
+        StudentAccess::ensureStudent(
+            $user
+        );
+
+        $quiz = StudentAccess::quiz(
+            $user,
+            (int) $quizId
+        );
+
+        $results =
+            QuizResult::with('user')
+            ->where(
+                'quiz_id',
+                $quiz->id
+            )
+            ->orderByDesc(
+                'score'
+            )
+            ->orderBy(
+                'created_at'
+            )
             ->get();
 
-        $data = $results->values()->map(function ($item, $index) {
-            return [
-                'rank' => $index + 1,
-                'user_id' => $item->user_id,
-                'user_name' => $item->user->name ?? 'User',
-                'score' => $item->score,
-            ];
-        });
+        return response()->json(
+            $results
+                ->values()
+                ->map(
+                    function (
+                        $item,
+                        $index
+                    ) {
+                        return [
+                            'rank' =>
+                            $index + 1,
 
-        return response()->json($data);
+                            'user_id' =>
+                            $item
+                                ->user_id,
+
+                            'user_name' =>
+                            $item
+                                ->user
+                                ?->name
+                                ?? 'User',
+
+                            'score' =>
+                            $item
+                                ->score,
+                        ];
+                    }
+                )
+        );
     }
 }

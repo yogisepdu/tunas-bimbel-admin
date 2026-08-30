@@ -1,61 +1,91 @@
 <!DOCTYPE html>
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
-    <head>
 
-        <meta charset="utf-8">
-        <meta name="csrf-token" content="{{ csrf_token() }}">
+<head>
+    <meta charset="utf-8">
+    <meta content="width=device-width, initial-scale=1" name="viewport">
+    <meta content="{{ csrf_token() }}" name="csrf-token">
 
-        <!-- Favicon -->
-        <link rel="shortcut icon" type="image/x-icon" href="images/favicon.png" />
-        
-        <!-- PLUGINS CSS STYLE -->
-        <link rel="stylesheet" href="assets/plugins/bootstrap/bootstrap.min.css">
-        <link rel="stylesheet" href="assets/plugins/themify-icons/themify-icons.css">
-        <link rel="stylesheet" href="assets/plugins/slick/slick.css">
-        <link rel="stylesheet" href="assets/plugins/slick/slick-theme.css">
-        <link rel="stylesheet" href="assets/plugins/fancybox/jquery.fancybox.min.css">
-        <link rel="stylesheet" href="assets/plugins/aos/aos.css">
+    <title>{{ config('app.name', 'Tunas Bimbel') }}</title>
+    <meta
+        content="Tunas Bimbel - platform pembelajaran online dengan materi, video, PDF, quiz, tryout, dan evaluasi belajar."
+        name="description">
 
-        {{-- Swiper --}}
-        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css"/>
+    <link href="{{ asset('assets/images/favicon.png') }}" rel="shortcut icon" type="image/x-icon">
 
-        <!-- CUSTOM CSS -->
-        <link href="assets/css/style.css" rel="stylesheet">
+    {{-- Font --}}
+    <link href="https://fonts.googleapis.com" rel="preconnect">
+    <link crossorigin href="https://fonts.gstatic.com" rel="preconnect">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap"
+        rel="stylesheet">
 
-        <title>{{ config('app.name') }}</title>
+    {{-- Theme / Plugin CSS --}}
+    <link href="{{ asset('assets/plugins/bootstrap/bootstrap.min.css') }}" rel="stylesheet">
+    <link href="{{ asset('assets/plugins/themify-icons/themify-icons.css') }}" rel="stylesheet">
+    <link href="{{ asset('assets/plugins/aos/aos.css') }}" rel="stylesheet">
+    <link href="{{ asset('assets/css/style.css') }}" rel="stylesheet">
+    <link href="{{ asset('assets/css/tunas-home.css') }}" rel="stylesheet">
+    <link href="{{ asset('assets/css/tunas-checkout.css') }}" rel="stylesheet">
 
-        @livewireStyles
-        @fluxAppearance
+    @livewireStyles
+    @fluxAppearance
 
-    </head>
+    <style>
+        html,
+        body {
+            margin: 0;
+            min-height: 100%;
+            background: #ffffff;
+        }
 
-    <body class="min-h-screen bg-zinc-100 dark:bg-zinc-900">
+        body {
+            font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        }
 
-        {{ $slot }}
+        [wire\:loading][wire\:loading] {
+            display: none;
+        }
 
-        @livewireScripts
-        @fluxScripts
+        button:disabled {
+            cursor: not-allowed;
+            opacity: .7;
+        }
+    </style>
+</head>
 
-        <!-- To Top -->
+<body>
+    {{ $slot }}
+
     <div class="scroll-top-to">
         <i class="ti-angle-up"></i>
     </div>
-    
-    <!-- JAVASCRIPTS -->
-    <script src="assets/plugins/jquery/jquery.min.js"></script>
 
-    {{-- Swiper --}}
-    <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
+    @livewireScripts
+    @fluxScripts
 
-    <script src="assets/plugins/bootstrap/bootstrap.min.js"></script>
-    <script src="assets/plugins/slick/slick.min.js"></script>
-    <script src="assets/plugins/fancybox/jquery.fancybox.min.js"></script>
-    <script src="assets/plugins/syotimer/jquery.syotimer.min.js"></script>
-    <script src="assets/plugins/aos/aos.js"></script>
-    <!-- google map -->
-    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAgeuuDfRlweIs7D6uo4wdIHVvJ0LonQ6g"></script>
-    <script src="assets/plugins/google-map/gmap.js"></script>
-    
-    <script src="assets/js/script.js"></script>
-    </body>
+    {{-- JavaScript --}}
+    <script src="{{ asset('assets/plugins/jquery/jquery.min.js') }}"></script>
+    <script src="{{ asset('assets/plugins/bootstrap/bootstrap.min.js') }}"></script>
+    <script src="{{ asset('assets/plugins/aos/aos.js') }}"></script>
+    <script src="{{ asset('assets/js/script.js') }}"></script>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            if (window.AOS) {
+                AOS.init({
+                    duration: 700,
+                    once: true,
+                    offset: 40
+                });
+            }
+        });
+
+        document.addEventListener('livewire:navigated', function() {
+            if (window.AOS) {
+                AOS.refreshHard();
+            }
+        });
+    </script>
+</body>
+
 </html>

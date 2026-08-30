@@ -1,0 +1,51 @@
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Model;
+
+class QuizAttempt extends Model
+{
+    public const STATUS_ACTIVE = 'active';
+    public const STATUS_SUBMITTED = 'submitted';
+    public const STATUS_EXPIRED = 'expired';
+
+    protected $fillable = [
+        'token',
+        'user_id',
+        'quiz_id',
+        'status',
+        'started_at',
+        'expires_at',
+        'submitted_at',
+    ];
+
+    protected function casts(): array
+    {
+        return [
+            'started_at' => 'datetime',
+            'expires_at' => 'datetime',
+            'submitted_at' => 'datetime',
+        ];
+    }
+
+    public function user()
+    {
+        return $this->belongsTo(
+            User::class
+        );
+    }
+
+    public function quiz()
+    {
+        return $this->belongsTo(
+            Quiz::class
+        );
+    }
+
+    public function isExpired(): bool
+    {
+        return $this->status === self::STATUS_EXPIRED
+            || $this->expires_at->isPast();
+    }
+}

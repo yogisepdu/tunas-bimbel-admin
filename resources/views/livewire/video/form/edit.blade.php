@@ -1,133 +1,104 @@
-<form wire:submit.prevent="update">
-
-    <!-- PILIH KELAS -->
-    <div class="mb-6">
-        <label class="block mb-2.5 text-sm font-medium text-heading">
-            Select Kelas
-        </label>
-
-        <select
-                wire:model.live="class_id"
-                class="block w-full px-3 py-2.5 bg-neutral-secondary-medium border border-default-medium text-heading text-sm rounded-base">
-
-            <option value="">Pilih Kelas</option>
-
-            @foreach($classes as $classRoom)
-                <option value="{{ $classRoom->id }}">
-                    {{ $classRoom->name }}
-                </option>
-            @endforeach
-
-        </select>
+<div class="space-y-6">
+    <div>
+        <flux:heading size="xl">Edit Video</flux:heading>
+        <flux:text class="mt-2">
+            Video YouTube tetap didukung. Untuk video yang benar-benar private, upload file langsung.
+        </flux:text>
     </div>
 
-    <!-- PILIH SUB-Materi -->
-    <div class="mb-6">
-        <label class="block mb-2.5 text-sm font-medium text-heading">
-            Select Sub-Materi
-        </label>
+    <form
+        class="space-y-5 rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-700 dark:bg-zinc-900"
+        wire:submit="update">
+        <div class="grid gap-5 md:grid-cols-2">
+            <div>
+                <label class="mb-2 block text-sm font-semibold">Kelas</label>
+                <select class="w-full rounded-xl border border-zinc-300 px-4 py-3 dark:border-zinc-700 dark:bg-zinc-800"
+                    wire:model.live="class_id">
+                    <option value="">Pilih kelas</option>
+                    @foreach ($classes as $class)
+                        <option value="{{ $class->id }}">{{ $class->name }}</option>
+                    @endforeach
+                </select>
+                @error('class_id')
+                    <div class="mt-1 text-xs text-red-500">{{ $message }}</div>
+                @enderror
+            </div>
 
-        <select
-            wire:model="chapter_id"
-            required
-            class="block w-full px-3 py-2.5 bg-neutral-secondary-medium border border-default-medium text-heading text-sm rounded-base">
+            <div>
+                <label class="mb-2 block text-sm font-semibold">Sub Materi</label>
+                <select class="w-full rounded-xl border border-zinc-300 px-4 py-3 dark:border-zinc-700 dark:bg-zinc-800"
+                    wire:model="chapter_id">
+                    <option value="">Pilih sub materi</option>
+                    @foreach ($chapters as $chapter)
+                        <option value="{{ $chapter->id }}">{{ $chapter->title }}</option>
+                    @endforeach
+                </select>
+                @error('chapter_id')
+                    <div class="mt-1 text-xs text-red-500">{{ $message }}</div>
+                @enderror
+            </div>
+        </div>
 
-            <option value="">Pilih Sub-Materi</option>
+        <div>
+            <label class="mb-2 block text-sm font-semibold">Judul Video</label>
+            <input class="w-full rounded-xl border border-zinc-300 px-4 py-3 dark:border-zinc-700 dark:bg-zinc-800"
+                type="text" wire:model="title">
+            @error('title')
+                <div class="mt-1 text-xs text-red-500">{{ $message }}</div>
+            @enderror
+        </div>
 
-            @foreach($chapters as $chapter)
-                <option value="{{ $chapter->id }}">
-                    {{ $chapter->title }}
-                </option>
-            @endforeach
+        <div>
+            <label class="mb-2 block text-sm font-semibold">Subtitle</label>
+            <input class="w-full rounded-xl border border-zinc-300 px-4 py-3 dark:border-zinc-700 dark:bg-zinc-800"
+                type="text" wire:model="subtitle">
+            @error('subtitle')
+                <div class="mt-1 text-xs text-red-500">{{ $message }}</div>
+            @enderror
+        </div>
 
-        </select>
+        <div>
+            <label class="mb-2 block text-sm font-semibold">Sumber Video</label>
+            <select class="w-full rounded-xl border border-zinc-300 px-4 py-3 dark:border-zinc-700 dark:bg-zinc-800"
+                wire:model.live="source_type">
+                <option value="youtube">YouTube</option>
+                <option value="private_file">File Video Private</option>
+            </select>
+        </div>
 
-        @error('chapter_id')
-            <span class="text-red-500 text-sm">{{ $message }}</span>
-        @enderror
-    </div>
+        @if ($source_type === 'youtube')
+            <div>
+                <label class="mb-2 block text-sm font-semibold">YouTube ID</label>
+                <input class="w-full rounded-xl border border-zinc-300 px-4 py-3 dark:border-zinc-700 dark:bg-zinc-800"
+                    placeholder="Contoh: dQw4w9WgXcQ" type="text" wire:model="youtube_id">
+                <div class="mt-2 text-xs text-zinc-500">
+                    YouTube ID hanya diberikan API setelah StudentAccess lolos, tetapi tidak dapat dibuat benar-benar
+                    private setelah ID diterima client.
+                </div>
+                @error('youtube_id')
+                    <div class="mt-1 text-xs text-red-500">{{ $message }}</div>
+                @enderror
+            </div>
+        @else
+            <div>
+                <label class="mb-2 block text-sm font-semibold">Upload Video Private</label>
+                <input accept=".mp4,.webm,.mov"
+                    class="block w-full rounded-xl border border-zinc-300 p-3 dark:border-zinc-700 dark:bg-zinc-800"
+                    type="file" wire:model="video_file">
+                <div class="mt-2 text-xs text-zinc-500">
+                    MP4/WEBM/MOV maksimal 200 MB. Untuk file besar, sesuaikan PHP dan Livewire upload limits.
+                </div>
+                @error('video_file')
+                    <div class="mt-1 text-xs text-red-500">{{ $message }}</div>
+                @enderror
+            </div>
+        @endif
 
-
-    <!-- TITLE VIDEO -->
-    <div class="mb-6">
-        <label class="block mb-2.5 text-sm font-medium text-heading">
-            Judul Video
-        </label>
-
-        <input 
-            type="text"
-            wire:model.defer="title"
-            class="bg-neutral-secondary-medium border border-default-medium text-heading text-sm rounded-base focus:ring-brand focus:border-brand block w-full px-3 py-2.5 shadow-xs"
-            placeholder="Masukkan judul video" />
-
-        @error('title')
-            <span class="text-red-500 text-sm">{{ $message }}</span>
-        @enderror
-    </div>
-
-
-    <!-- SUBTITLE -->
-    <div class="mb-6">
-        <label class="block mb-2.5 text-sm font-medium text-heading">
-            Subtitle Video
-        </label>
-
-        <input 
-            type="text"
-            wire:model.defer="subtitle"
-            class="bg-neutral-secondary-medium border border-default-medium text-heading text-sm rounded-base focus:ring-brand focus:border-brand block w-full px-3 py-2.5 shadow-xs"
-            placeholder="Masukkan subtitle video" />
-
-        @error('subtitle')
-            <span class="text-red-500 text-sm">{{ $message }}</span>
-        @enderror
-    </div>
-
-
-    <!-- YOUTUBE ID -->
-    <div class="mb-6">
-        <label class="block mb-2.5 text-sm font-medium text-heading">
-            Youtube ID
-        </label>
-
-        <input 
-            type="text"
-            wire:model.defer="youtube_id"
-            class="bg-neutral-secondary-medium border border-default-medium text-heading text-sm rounded-base focus:ring-brand focus:border-brand block w-full px-3 py-2.5 shadow-xs"
-            placeholder="Contoh: dQw4w9WgXcQ" />
-
-        <p class="text-xs text-gray-500 mt-1">
-            Masukkan hanya ID video Youtube, bukan link penuh.
-        </p>
-
-        <iframe
-            class="w-full h-64 mt-4 rounded-base"
-            src="https://www.youtube.com/embed/{{ $youtube_id }}"
-            frameborder="0"
-            allowfullscreen>
-        </iframe>
-
-        @error('youtube_id')
-            <span class="text-red-500 text-sm">{{ $message }}</span>
-        @enderror
-
-    </div>
-
-
-    <!-- BUTTON -->
-    <button 
-        type="submit"
-        wire:loading.attr="disabled"
-        class="text-white bg-brand hover:bg-brand-strong focus:ring-4 focus:ring-brand-medium shadow-xs font-medium rounded-base text-sm px-4 py-2.5">
-
-        <span wire:loading.remove wire:target="save">
-            Update Video
-        </span>
-
-        <span wire:loading wire:target="save">
-            Updating...
-        </span>
-
-    </button>
-
-</form>
+        <button
+            class="rounded-xl bg-violet-600 px-5 py-3 text-sm font-bold text-white hover:bg-violet-700 disabled:opacity-60"
+            type="submit" wire:loading.attr="disabled">
+            <span wire:loading.remove wire:target="save">Simpan Perubahan</span>
+            <span wire:loading wire:target="save">Menyimpan...</span>
+        </button>
+    </form>
+</div>

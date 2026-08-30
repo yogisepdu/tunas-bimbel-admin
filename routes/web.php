@@ -78,6 +78,16 @@ use App\Livewire\Packages\Index as PackagesIndex;
 use App\Livewire\Packages\Form\Create as PackagesCreate;
 use App\Livewire\Packages\Form\Edit as PackagesEdit;
 
+use App\Http\Controllers\TransactionProofController;
+
+use App\Livewire\PaymentMethods\Index as PaymentMethodsIndex;
+use App\Livewire\Transactions\Index as TransactionsIndex;
+use App\Livewire\Transactions\Show as TransactionsShow;
+
+use App\Livewire\Payment\PaymentPage;
+
+use App\Http\Controllers\VideoPreviewController;
+
 /*
 |--------------------------------------------------------------------------
 | PUBLIC ROUTES
@@ -87,9 +97,19 @@ use App\Livewire\Packages\Form\Edit as PackagesEdit;
 Route::get('/', HomeDashboard::class)
     ->name('home');
 
-Route::get('/checkout/{id}', CheckoutPage::class)
+Route::get(
+    '/checkout/{id}',
+    CheckoutPage::class
+)
     ->whereNumber('id')
     ->name('checkout');
+
+Route::get(
+    '/payment/{token}',
+    PaymentPage::class
+)
+    ->whereUuid('token')
+    ->name('payment.show');
 
 /*
 |--------------------------------------------------------------------------
@@ -142,6 +162,8 @@ Route::middleware([
     'role:administrator,admin,teacher',
 ])->group(function () {
 
+
+
     /*
     |--------------------------------------------------------------------------
     | DASHBOARD
@@ -161,6 +183,7 @@ Route::middleware([
     */
 
     Route::middleware('role:administrator')->group(function () {
+
 
         /*
         |--------------------------------------------------------------------------
@@ -268,6 +291,34 @@ Route::middleware([
         ->name('course.index');
 
     Route::middleware('role:administrator,admin')->group(function () {
+
+        Route::get(
+            '/payment-methods',
+            PaymentMethodsIndex::class
+        )->name('payment-methods.index');
+
+        Route::get(
+            '/transactions',
+            TransactionsIndex::class
+        )->name('transactions.index');
+
+        Route::get(
+            '/transactions/{id}',
+            TransactionsShow::class
+        )
+            ->whereNumber('id')
+            ->name('transactions.show');
+
+        Route::get(
+            '/transactions/{transaction}/proof',
+            [
+                TransactionProofController::class,
+                'show',
+            ]
+        )
+            ->whereNumber('transaction')
+            ->name('transactions.proof');
+
         Route::get('/course/create', CourseCreate::class)
             ->name('course.create');
 
@@ -321,6 +372,16 @@ Route::middleware([
     Route::get('/video/{id}/edit', VideoEdit::class)
         ->whereNumber('id')
         ->name('video.edit');
+
+    Route::get(
+        '/video/{video}/preview',
+        [
+            VideoPreviewController::class,
+            'show',
+        ]
+    )
+        ->whereNumber('video')
+        ->name('video.preview');
 
     /*
     |--------------------------------------------------------------------------

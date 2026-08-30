@@ -3,65 +3,143 @@
 namespace App\Http\Controllers\Api\Quiz;
 
 use App\Http\Controllers\Controller;
-use App\Models\Chapter;
 use App\Models\Quiz;
-use Illuminate\Http\Request;
+use App\Services\AssessmentScoringService;
+use App\Support\StudentAccess;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Facades\DB;
 
 class QuizController extends Controller
 {
-    public function questions($chapterId)
-    {
+    public function questions(
+        $chapterId,
+        AssessmentScoringService $scoring
+    ) {
         $user = auth()->user();
 
-        // 🔥 1. AMBIL CHAPTER DULU (WAJIB)
-        $chapter = Chapter::findOrFail($chapterId);
+        StudentAccess::ensureStudent(
+            $user
+        );
 
-        // 🔥 2. CEK AKSES
-        $hasAccess = DB::table('user_packages')
-            ->join('package_classes', 'user_packages.package_id', '=', 'package_classes.package_id')
-            ->where('user_packages.user_id', $user->id)
-            ->where('package_classes.class_id', $chapter->class_id)
-            ->exists();
+        $chapter =
+            StudentAccess::chapter(
+                $user,
+                (int) $chapterId
+            );
 
-        if (!$hasAccess) {
-            return response()->json([
-                'message' => 'Akses ditolak'
-            ], 403);
-        }
-
-        // 🔥 3. AMBIL QUIZ
-        $quiz = Quiz::with(['questions','classRoom'])
-            ->where('class_id', $chapter->class_id)
+        $quiz = Quiz::query()
+            ->with([
+                'questions',
+                'classRoom',
+            ])
+            ->where(
+                'class_id',
+                $chapter->class_id
+            )
             ->firstOrFail();
 
-        $questions = $quiz->questions->map(function ($q) use ($quiz) {
+        StudentAccess::quiz(
+            $user,
+            (int) $quiz->id
+        );
 
-            return [
-                'id' => $q->id,
-                'category' => $quiz->classRoom->name,
-                'subCategory' => null,
-                'text' => $q->question,
+        $attempt =
+            $scoring->startQuizAttempt(
+                $user,
+                $quiz
+            );
 
-                'image' => $q->image ? Storage::url($q->image) : null,
+        $questions = $quiz
+            ->questions
+            ->map(
+                function ($question) use (
+                    $quiz
+                ) {
+                    return [
+                        'id' =>
+                        $question->id,
 
-                'options' => [
-                    ['key' => 'A', 'text' => $q->option_a],
-                    ['key' => 'B', 'text' => $q->option_b],
-                    ['key' => 'C', 'text' => $q->option_c],
-                    ['key' => 'D', 'text' => $q->option_d],
-                ],
-                'correctAnswer' => $q->correct_answer
-            ];
-        });
+                        'category' =>
+                        $quiz
+                            ->classRoom
+                            ?->name,
+
+                        'subCategory' =>
+                        null,
+
+                        'text' =>
+                        $question->question,
+
+                        'image' =>
+                        $question->image
+                            ? Storage::url(
+                                $question->image
+                            )
+                            : null,
+
+                        'options' => [
+                            [
+                                'key' => 'A',
+                                'text' =>
+                                $question
+                                    ->option_a,
+                            ],
+                            [
+                                'key' => 'B',
+                                'text' =>
+                                $question
+                                    ->option_b,
+                            ],
+                            [
+                                'key' => 'C',
+                                'text' =>
+                                $question
+                                    ->option_c,
+                            ],
+                            [
+                                'key' => 'D',
+                                'text' =>
+                                $question
+                                    ->option_d,
+                            ],
+                        ],
+
+                        /*
+                         * TIDAK ADA correctAnswer.
+                         */
+                    ];
+                }
+            );
 
         return response()->json([
-            'quiz_id' => $quiz->id,
-            'title' => $quiz->title,
-            'category' => $quiz->classRoom->name,
-            'duration' => $quiz->duration,
-            'questions' => $questions
+            'quiz_id' =>
+            $quiz->id,
+
+            'attempt_token' =>
+            $attempt->token,
+
+            'started_at' =>
+            $attempt
+                ->started_at
+                ->toIso8601String(),
+
+            'expires_at' =>
+            $attempt
+                ->expires_at
+                ->toIso8601String(),
+
+            'duration' =>
+            $quiz->duration,
+
+            'title' =>
+            $quiz->title,
+
+            'category' =>
+            $quiz
+                ->classRoom
+                ?->name,
+
+            'questions' =>
+            $questions,
         ]);
     }
 }

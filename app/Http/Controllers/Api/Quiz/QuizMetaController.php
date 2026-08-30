@@ -3,26 +3,35 @@
 namespace App\Http\Controllers\Api\Quiz;
 
 use App\Http\Controllers\Controller;
-use App\Models\Quiz;
-use Illuminate\Http\Request;
+use App\Support\StudentAccess;
 
 class QuizMetaController extends Controller
 {
-    //
     public function show($quizId)
     {
-        $quiz = Quiz::find($quizId);
+        $user = auth()->user();
 
-        if (!$quiz) {
-            return response()->json([
-                'message' => 'Quiz tidak ditemukan'
-            ], 404);
-        }
+        StudentAccess::ensureStudent(
+            $user
+        );
+
+        $quiz = StudentAccess::quiz(
+            $user,
+            (int) $quizId
+        );
 
         return response()->json([
-            'id' => 'quiz-' . $quiz->id, // string id
-            'title' => $quiz->title,
-            'duration' => $quiz->duration * 60 // convert menit → detik
+            'id' =>
+            'quiz-' . $quiz->id,
+
+            'title' =>
+            $quiz->title,
+
+            /*
+             * Menit -> detik
+             */
+            'duration' =>
+            $quiz->duration * 60,
         ]);
     }
 }

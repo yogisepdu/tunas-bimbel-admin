@@ -2,57 +2,73 @@
 
 namespace App\Livewire;
 
-use Livewire\Component;
 use App\Models\Packages;
+use Livewire\Component;
 
 class HomeDashboard extends Component
 {
-    public $billing = 'monthly';
-    public $packages = [];
+    public string $billing = 'monthly';
 
-    public function mount()
+    public array $packages = [];
+
+    public function mount(): void
     {
         $this->loadPackages();
     }
 
-    public function loadPackages()
+    public function loadPackages(): void
     {
-        $this->packages = Packages::with('classes')->get()->map(function ($package) {
+        $this->packages = Packages::with('classes')
+            ->get()
+            ->map(function ($package) {
+                return [
+                    'id' => $package->id,
+                    'name' => $package->name,
+                    'description' => $package->description,
+                    'image' => $package->image,
+                    'price_monthly' => (float) $package->price,
+                    'price_yearly' => (float) $package->price * 10,
+                    'features' => $package->classes
+                        ->pluck('name')
+                        ->toArray(),
+                    'button' => (float) $package->price === 0.0
+                        ? 'Mulai Gratis'
+                        : 'Pilih Paket',
+                    'highlight' => false,
+                ];
+            })
+            ->toArray();
 
+        $maxPrice = collect($this->packages)
+            ->max('price_monthly');
 
-            return [
-                'id' => $package->id,
-                'name' => $package->name,
-                'description' => $package->description,
-                'image' => $package->image,
+        $this->packages = collect($this->packages)
+            ->map(function ($package) use ($maxPrice) {
+                $package['highlight'] =
+                    $package['price_monthly'] == $maxPrice;
 
-                // 🔥 kalau hanya 1 price di DB
-                'price_monthly' => $package->price,
-                'price_yearly' => $package->price * 10, // contoh diskon tahunan
-
-                // 🔥 ambil fitur dari relasi classes
-                'features' => $package->classes->pluck('name')->toArray(),
-
-                // 🔥 default logic
-                'button' => $package->price == 0 ? 'Mulai Gratis' : 'Subscribe',
-
-                // 🔥 highlight otomatis (misal package termahal)
-                'highlight' => false,
-            ];
-        })->toArray();
-
-        // 🔥 set highlight otomatis (contoh: harga tertinggi)
-        $maxPrice = collect($this->packages)->max('price_monthly');
-
-        $this->packages = collect($this->packages)->map(function ($pkg) use ($maxPrice) {
-            $pkg['highlight'] = $pkg['price_monthly'] == $maxPrice;
-            return $pkg;
-        })->toArray();
+                return $package;
+            })
+            ->toArray();
     }
 
     public function buy($id)
     {
-        return redirect('/checkout/' . $id);
+        $billing = in_array(
+            $this->billing,
+            ['monthly', 'yearly'],
+            true
+        )
+            ? $this->billing
+            : 'monthly';
+
+        return redirect()->route(
+            'checkout',
+            [
+                'id' => $id,
+                'billing' => $billing,
+            ]
+        );
     }
 
     public function render()

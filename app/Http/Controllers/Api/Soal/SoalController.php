@@ -5,231 +5,493 @@ namespace App\Http\Controllers\Api\Soal;
 use App\Http\Controllers\Controller;
 use App\Models\SoalResult;
 use App\Models\SoalSection;
-use App\Models\SoalSet;
 use App\Models\UserSoalProgress;
+use App\Services\AssessmentScoringService;
+use App\Support\StudentAccess;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 
 class SoalController extends Controller
 {
-    //
-    // 🔥 SECTION + SET
     public function sections()
     {
         $user = auth()->user();
 
-        $sections = SoalSection::whereIn('class_id', function ($query) use ($user) {
-            $query->select('class_id')
-                ->from('package_classes')
-                ->whereIn('package_id', function ($q) use ($user) {
-                    $q->select('package_id')
-                        ->from('user_packages')
-                        ->where('user_id', $user->id);
-                });
-        })
-        ->with('sets')
-        ->get();
-
-        return response()->json(
-            $sections->map(function ($section) {
-
-                $totalSoal = $section->sets->sum('total_questions');
-
-                $icon = match (strtolower($section->title)) {
-                    'tiu' => 'analytics',
-                    'twk' => 'book',
-                    'tkp' => 'people',
-                    default => 'pencil',
-                };
-
-                $color = match (strtolower($section->title)) {
-                    'tiu' => '#3B82F6',
-                    'twk' => '#10B981',
-                    'tkp' => '#F59E0B',
-                    default => '#6366F1',
-                };
-
-                return [
-                    'id' => $section->id,
-                    'title' => $section->title,
-                    'total_soal' => $totalSoal,
-                    'date' => now()->translatedFormat('l, d F Y'),
-                    'icon' => $icon,
-                    'color' => $color,
-
-                    'items' => $section->sets->map(function ($set) {
-                        return [
-                            'id' => $set->id,
-                            'title' => $set->title,
-                            'soal' => $set->total_questions . ' Soal',
-                            'waktu' => $set->duration . ' Menit',
-                            'poin' => $set->points . ' Poin',
-                            'badge' => $set->badge,
-                        ];
-                    }),
-                ];
-            })
+        StudentAccess::ensureStudent(
+            $user
         );
-    }
 
-    public function sectionsBySet($setId)
-    {
-        $sections = SoalSection::with(['sets' => function ($q) use ($setId) {
-            $q->where('id', $setId);
-        }])->get();
+        $classIds =
+            StudentAccess::accessibleClassIds(
+                $user
+            );
 
-        return response()->json(
-            $sections->map(function ($section) {
-                return [
-                    'id' => $section->id,
-                    'title' => $section->title,
-                    'items' => $section->sets->map(function ($set) {
-                        return [
-                            'id' => $set->id,
-                            'title' => $set->title,
-                            'soal' => $set->total_questions . ' Soal',
-                            'waktu' => $set->duration . ' Menit',
-                            'poin' => $set->points . ' Poin',
-                            'badge' => $set->badge,
-                        ];
-                    }),
-                ];
-            })->filter(fn($s) => count($s['items']) > 0)->values()
-        );
-    }
-
-    // 🔥 QUESTIONS PER SET
-    public function questions($setId)
-    {
-        $set = SoalSet::with('questions.options')->find($setId);
-
-        if (!$set) {
-            return response()->json([
-                'message' => 'Set tidak ditemukan'
-            ], 404);
+        if ($classIds->isEmpty()) {
+            return response()->json([]);
         }
 
-        return response()->json([
-            'set_id' => $set->id,
-            'title' => $set->title,
-            'duration' => $set->duration, // 🔥 ini penting
-            'questions' => $set->questions->map(function ($q) {
-                return [
-                    'id' => $q->id,
-                    'text' => $q->question,
-                    'options' => $q->options->map(function ($opt) {
-                        return [
-                            'key' => $opt->key,
-                            'text' => $opt->text,
-                        ];
-                    }),
-                    'correctAnswer' => $q->correct_answer,
-                ];
-            }),
-        ]);
+        $sections = SoalSection::query()
+            ->whereIn(
+                'class_id',
+                $classIds
+            )
+            ->with('sets')
+            ->get();
+
+        return response()->json(
+            $sections->map(
+                function ($section) {
+                    $totalSoal =
+                        $section
+                        ->sets
+                        ->sum(
+                            'total_questions'
+                        );
+
+                    $icon = match (strtolower(
+                        $section->title
+                    )) {
+                        'tiu' =>
+                        'analytics',
+
+                        'twk' =>
+                        'book',
+
+                        'tkp' =>
+                        'people',
+
+                        default =>
+                        'pencil',
+                    };
+
+                    $color = match (strtolower(
+                        $section->title
+                    )) {
+                        'tiu' =>
+                        '#3B82F6',
+
+                        'twk' =>
+                        '#10B981',
+
+                        'tkp' =>
+                        '#F59E0B',
+
+                        default =>
+                        '#6366F1',
+                    };
+
+                    return [
+                        'id' =>
+                        $section->id,
+
+                        'title' =>
+                        $section->title,
+
+                        'total_soal' =>
+                        $totalSoal,
+
+                        'date' =>
+                        now()
+                            ->translatedFormat(
+                                'l, d F Y'
+                            ),
+
+                        'icon' =>
+                        $icon,
+
+                        'color' =>
+                        $color,
+
+                        'items' =>
+                        $section
+                            ->sets
+                            ->map(
+                                fn($set) => [
+                                    'id' =>
+                                    $set->id,
+
+                                    'title' =>
+                                    $set->title,
+
+                                    'soal' =>
+                                    $set
+                                        ->total_questions
+                                        . ' Soal',
+
+                                    'waktu' =>
+                                    $set
+                                        ->duration
+                                        . ' Menit',
+
+                                    'poin' =>
+                                    $set
+                                        ->points
+                                        . ' Poin',
+
+                                    'badge' =>
+                                    $set
+                                        ->badge,
+                                ]
+                            ),
+                    ];
+                }
+            )
+        );
     }
 
-    // Store
-    public function storeResult(Request $request)
-    {
-        $user = $request->user();
+    public function sectionsBySet(
+        $setId
+    ) {
+        $user = auth()->user();
 
-        $data = $request->validate([
-            'soal_set_id' => 'required|integer',
-            'score' => 'required|integer',
-            'correct' => 'required|integer',
-            'wrong' => 'required|integer',
-            'empty' => 'required|integer',
-            'answers' => 'nullable|array',
-        ]);
+        StudentAccess::ensureStudent(
+            $user
+        );
 
-        $result = SoalResult::create([
-            'user_id' => $user->id,
-            'soal_set_id' => $data['soal_set_id'],
-            'score' => $data['score'],
-            'correct' => $data['correct'],
-            'wrong' => $data['wrong'],
-            'empty' => $data['empty'],
-            'answers' => json_encode($data['answers']),
-        ]);
+        $set =
+            StudentAccess::soalSet(
+                $user,
+                (int) $setId
+            );
 
-        // 🔥 PROGRESS
-        UserSoalProgress::updateOrCreate(
-            [
-                'user_id' => $user->id,
-                'soal_set_id' => $data['soal_set_id'],
-            ],
-            [
-                'status' => true
-            ]
+        $set->loadMissing(
+            'section'
         );
 
         return response()->json([
-            'message' => 'Soal result saved',
-            'data' => $result
+            [
+                'id' =>
+                $set->section->id,
+
+                'title' =>
+                $set->section->title,
+
+                'items' => [
+                    [
+                        'id' =>
+                        $set->id,
+
+                        'title' =>
+                        $set->title,
+
+                        'soal' =>
+                        $set
+                            ->total_questions
+                            . ' Soal',
+
+                        'waktu' =>
+                        $set
+                            ->duration
+                            . ' Menit',
+
+                        'poin' =>
+                        $set
+                            ->points
+                            . ' Poin',
+
+                        'badge' =>
+                        $set->badge,
+                    ],
+                ],
+            ],
         ]);
     }
 
-    public function checkSoalProgress($setId)
-    {
+    public function questions(
+        $setId,
+        AssessmentScoringService $scoring
+    ) {
         $user = auth()->user();
 
-        $progress = UserSoalProgress::where('user_id', $user->id)
-            ->where('soal_set_id', $setId)
+        StudentAccess::ensureStudent(
+            $user
+        );
+
+        $set =
+            StudentAccess::soalSet(
+                $user,
+                (int) $setId
+            );
+
+        $set->load(
+            'questions.options'
+        );
+
+        $attempt =
+            $scoring->startSoalAttempt(
+                $user,
+                $set
+            );
+
+        return response()->json([
+            'set_id' =>
+            $set->id,
+
+            'title' =>
+            $set->title,
+
+            'duration' =>
+            $set->duration,
+
+            'attempt_token' =>
+            $attempt->token,
+
+            'started_at' =>
+            $attempt
+                ->started_at
+                ->toIso8601String(),
+
+            'expires_at' =>
+            $attempt
+                ->expires_at
+                ->toIso8601String(),
+
+            'questions' =>
+            $set
+                ->questions
+                ->map(
+                    function (
+                        $question
+                    ) {
+                        return [
+                            'id' =>
+                            $question
+                                ->id,
+
+                            'text' =>
+                            $question
+                                ->question,
+
+                            'options' =>
+                            $question
+                                ->options
+                                ->map(
+                                    fn($option) => [
+                                        'key' =>
+                                        $option
+                                            ->key,
+
+                                        'text' =>
+                                        $option
+                                            ->text,
+                                    ]
+                                ),
+
+                            /*
+                                 * TIDAK ADA correctAnswer.
+                                 */
+                        ];
+                    }
+                ),
+        ]);
+    }
+
+    /**
+     * Server-side scoring.
+     */
+    public function storeResult(
+        Request $request,
+        AssessmentScoringService $scoring
+    ) {
+        $user = $request->user();
+
+        StudentAccess::ensureStudent(
+            $user
+        );
+
+        $data = $request->validate([
+            'attempt_token' => [
+                'required',
+                'uuid',
+            ],
+
+            'answers' => [
+                'present',
+                'array',
+            ],
+        ]);
+
+        $calculated =
+            $scoring->submitSoal(
+                $user,
+                $data['attempt_token'],
+                $data['answers']
+            );
+
+        $set =
+            StudentAccess::soalSet(
+                $user,
+                (int)
+                $calculated['set']->id
+            );
+
+        return response()->json([
+            'message' =>
+            'Tryout berhasil dinilai oleh server.',
+
+            'data' => [
+                'result_id' =>
+                $calculated['result']->id,
+
+                'soal_set_id' =>
+                $set->id,
+
+                'score' =>
+                $calculated['score'],
+
+                'correct' =>
+                $calculated['correct'],
+
+                'wrong' =>
+                $calculated['wrong'],
+
+                'empty' =>
+                $calculated['empty'],
+
+                'review' =>
+                $calculated['review'],
+            ],
+        ]);
+    }
+
+    public function checkSoalProgress(
+        $setId
+    ) {
+        $user = auth()->user();
+
+        StudentAccess::ensureStudent(
+            $user
+        );
+
+        $set =
+            StudentAccess::soalSet(
+                $user,
+                (int) $setId
+            );
+
+        $progress =
+            UserSoalProgress::query()
+            ->where(
+                'user_id',
+                $user->id
+            )
+            ->where(
+                'soal_set_id',
+                $set->id
+            )
             ->first();
 
-        // ❌ BELUM PERNAH KERJAKAN
-        if (!$progress) {
+        if (! $progress) {
             return response()->json([
                 'has_done' => false,
-                'result' => null
+                'result' => null,
             ]);
         }
 
-        // 🔥 AMBIL RESULT TERAKHIR
-        $result = SoalResult::where('user_id', $user->id)
-            ->where('soal_set_id', $setId)
+        $result =
+            SoalResult::query()
+            ->where(
+                'user_id',
+                $user->id
+            )
+            ->where(
+                'soal_set_id',
+                $set->id
+            )
             ->latest()
             ->first();
 
-        // ❗ JAGA-JAGA kalau progress ada tapi result kosong
-        if (!$result) {
+        if (! $result) {
             return response()->json([
                 'has_done' => false,
-                'result' => null
+                'result' => null,
             ]);
         }
 
         return response()->json([
             'has_done' => true,
+
             'result' => [
-                'score' => $result->score,
-                'correct' => $result->correct,
-                'wrong' => $result->wrong,
-                'empty' => $result->empty,
-                'soal_set_id' => $result->soal_set_id,
-                'answers' => json_decode($result->answers, true),
-            ]
+                'score' =>
+                $result->score,
+
+                'correct' =>
+                $result->correct,
+
+                'wrong' =>
+                $result->wrong,
+
+                'empty' =>
+                $result->empty,
+
+                'soal_set_id' =>
+                $result->soal_set_id,
+
+                'answers' =>
+                json_decode(
+                    $result->answers,
+                    true
+                ),
+            ],
         ]);
     }
 
-    public function leaderboard($soalSetId)
-    {
-        $results = SoalResult::with('user')
-            ->where('soal_set_id', $soalSetId)
-            ->orderByDesc('score')
-            ->orderBy('created_at')
+    public function leaderboard(
+        $soalSetId
+    ) {
+        $user = auth()->user();
+
+        StudentAccess::ensureStudent(
+            $user
+        );
+
+        $set =
+            StudentAccess::soalSet(
+                $user,
+                (int) $soalSetId
+            );
+
+        $results =
+            SoalResult::with('user')
+            ->where(
+                'soal_set_id',
+                $set->id
+            )
+            ->orderByDesc(
+                'score'
+            )
+            ->orderBy(
+                'created_at'
+            )
             ->get();
 
-        $data = $results->values()->map(function ($item, $index) {
-            return [
-                'rank' => $index + 1,
-                'user_id' => $item->user_id,
-                'user_name' => $item->user->name ?? 'User',
-                'score' => $item->score,
-            ];
-        });
+        return response()->json(
+            $results
+                ->values()
+                ->map(
+                    function (
+                        $item,
+                        $index
+                    ) {
+                        return [
+                            'rank' =>
+                            $index + 1,
 
-        return response()->json($data);
+                            'user_id' =>
+                            $item
+                                ->user_id,
+
+                            'user_name' =>
+                            $item
+                                ->user
+                                ?->name
+                                ?? 'User',
+
+                            'score' =>
+                            $item
+                                ->score,
+                        ];
+                    }
+                )
+        );
     }
 }
