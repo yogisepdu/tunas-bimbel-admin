@@ -6,9 +6,14 @@ use Illuminate\Database\Eloquent\Model;
 
 class QuizAttempt extends Model
 {
-    public const STATUS_ACTIVE = 'active';
-    public const STATUS_SUBMITTED = 'submitted';
-    public const STATUS_EXPIRED = 'expired';
+    public const STATUS_ACTIVE =
+    'active';
+
+    public const STATUS_SUBMITTED =
+    'submitted';
+
+    public const STATUS_EXPIRED =
+    'expired';
 
     protected $fillable = [
         'token',
@@ -23,9 +28,14 @@ class QuizAttempt extends Model
     protected function casts(): array
     {
         return [
-            'started_at' => 'datetime',
-            'expires_at' => 'datetime',
-            'submitted_at' => 'datetime',
+            'started_at' =>
+            'datetime',
+
+            'expires_at' =>
+            'datetime',
+
+            'submitted_at' =>
+            'datetime',
         ];
     }
 
@@ -45,7 +55,19 @@ class QuizAttempt extends Model
 
     public function isExpired(): bool
     {
-        return $this->status === self::STATUS_EXPIRED
-            || $this->expires_at->isPast();
+        if (
+            $this->status ===
+            self::STATUS_EXPIRED
+        ) {
+            return true;
+        }
+
+        if (! $this->expires_at) {
+            return true;
+        }
+
+        return $this
+            ->expires_at
+            ->isPast();
     }
 }
