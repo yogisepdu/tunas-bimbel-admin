@@ -8,12 +8,16 @@ use App\Models\Quiz;
 use App\Models\UserLearningProgress;
 use App\Support\StudentAccess;
 use Carbon\Carbon;
+use Illuminate\Http\Request;
 
 class ChapterController extends Controller
 {
-    public function index()
+    /**
+     * Menampilkan daftar chapter yang dapat diakses oleh student.
+     */
+    public function index(Request $request)
     {
-        $user = auth()->user();
+        $user = $request->user();
 
         StudentAccess::ensureStudent(
             $user
@@ -72,10 +76,27 @@ class ChapterController extends Controller
             ->latest()
             ->get();
 
+        /*
+         * Ambil progress seluruh chapter milik user
+         * sekaligus agar tidak melakukan query berulang.
+         */
+        $chapterProgress = UserLearningProgress::query()
+            ->where(
+                'user_id',
+                $user->id
+            )
+            ->whereIn(
+                'chapter_id',
+                $chapters->pluck('id')
+            )
+            ->get()
+            ->groupBy('chapter_id');
+
         $data = $chapters->map(
             function ($chapter) use (
                 $icons,
-                $colors
+                $colors,
+                $chapterProgress
             ) {
                 $pdf =
                     $chapter
@@ -118,6 +139,53 @@ class ChapterController extends Controller
                             $pdf->pdf_url;
                     }
                 }
+
+                /*
+                 * Ambil progress chapter user.
+                 */
+                $progressRows =
+                    $chapterProgress->get(
+                        $chapter->id,
+                        collect()
+                    );
+
+                /*
+                 * Hitung resource yang sudah selesai.
+                 *
+                 * Kita menggunakan collection agar tetap aman
+                 * apabila database saat ini masih memiliki
+                 * lebih dari satu row progress untuk chapter yang sama.
+                 */
+                $hasVideo =
+                    $progressRows->contains(
+                        fn($item) =>
+                        !is_null($item->video_id)
+                    );
+
+                $hasPdf =
+                    $progressRows->contains(
+                        fn($item) =>
+                        !is_null($item->pdf_id)
+                    );
+
+                $hasQuiz =
+                    $progressRows->contains(
+                        fn($item) =>
+                        !is_null($item->quiz_id)
+                    );
+
+                $doneCount =
+                    (int) $hasVideo +
+                    (int) $hasPdf +
+                    (int) $hasQuiz;
+
+                $progressPercent =
+                    (int) round(
+                        ($doneCount / 3) * 100
+                    );
+
+                $completed =
+                    $progressPercent >= 100;
 
                 return [
                     'id' =>
@@ -165,6 +233,17 @@ class ChapterController extends Controller
                     $pdf
                         && $pdf->storage_type
                         === 'private_file',
+
+                    /*
+                     * Progress chapter.
+                     */
+                    'progress' => [
+                        'percent' =>
+                        $progressPercent,
+
+                        'completed' =>
+                        $completed,
+                    ],
                 ];
             }
         );
@@ -175,226 +254,269 @@ class ChapterController extends Controller
         ]);
     }
 
-    public function show($id)
+    /**
+     * Menampilkan detail chapter:
+     * - Video
+     * - PDF
+     * - Quiz
+     * - Status progress masing-masing resource
+     * - Progress keseluruhan chapter
+     */
+    public function show(Request $request, $id)
     {
-        $user = auth()->user();
+        $user = $request->user();
 
-        StudentAccess::ensureStudent(
-            $user
+        StudentAccess::ensureStudent($user);
+
+        /*
+    |--------------------------------------------------------------------------
+    | Pastikan chapter boleh diakses student
+    |--------------------------------------------------------------------------
+    */
+
+        $authorizedChapter = StudentAccess::chapter(
+            $user,
+            (int) $id
         );
 
-        $authorizedChapter =
-            StudentAccess::chapter(
-                $user,
-                (int) $id
-            );
+        /*
+    |--------------------------------------------------------------------------
+    | Ambil chapter
+    |--------------------------------------------------------------------------
+    */
 
         $chapter = Chapter::query()
             ->with([
                 'videos:id,chapter_id,title,subtitle,youtube_id,source_type,video_path',
+
                 'materiPdf:id,chapter_id,title,pdf_url,storage_type',
             ])
-            ->findOrFail(
-                $authorizedChapter->id
-            );
+            ->findOrFail($authorizedChapter->id);
 
-        $progress =
-            UserLearningProgress::query()
-            ->where(
-                'user_id',
-                $user->id
-            )
-            ->where(
-                'chapter_id',
-                $chapter->id
-            )
-            ->get();
+        /*
+    |--------------------------------------------------------------------------
+    | Ambil SATU progress untuk user + chapter
+    |--------------------------------------------------------------------------
+    */
+
+        $progress = UserLearningProgress::query()
+            ->where('user_id', $user->id)
+            ->where('chapter_id', $chapter->id)
+            ->first();
+
+        /*
+    |--------------------------------------------------------------------------
+    | Default progress
+    |--------------------------------------------------------------------------
+    */
+
+        $completedVideoIds = array_map(
+            'intval',
+            $progress?->completed_video_ids ?? []
+        );
+
+        $completedPdfIds = array_map(
+            'intval',
+            $progress?->completed_pdf_ids ?? []
+        );
+
+        $completedQuizIds = array_map(
+            'intval',
+            $progress?->completed_quiz_ids ?? []
+        );
+
+        /*
+    |--------------------------------------------------------------------------
+    | Items
+    |--------------------------------------------------------------------------
+    */
 
         $items = [];
 
-        foreach (
-            $chapter->videos
-            as $video
-        ) {
+        /*
+    |--------------------------------------------------------------------------
+    | VIDEO
+    |--------------------------------------------------------------------------
+    */
+
+        foreach ($chapter->videos as $video) {
+
             StudentAccess::video(
                 $user,
                 (int) $video->id
             );
 
-            $isDone = $progress
-                ->where(
-                    'video_id',
-                    $video->id
-                )
-                ->first();
+            $private = $video->source_type === 'private_file';
 
-            $private =
-                $video->source_type
-                === 'private_file';
+            $isDone = in_array(
+                (int) $video->id,
+                $completedVideoIds,
+                true
+            );
 
             $items[] = [
-                'id' =>
-                'v-' . $video->id,
+                'id' => 'v-' . $video->id,
 
-                'resourceId' =>
-                $video->id,
+                'resourceId' => (int) $video->id,
 
-                'chapterId' =>
-                (string)
-                $chapter->id,
+                'chapterId' => (string) $chapter->id,
 
-                'type' =>
-                'video',
+                'type' => 'video',
 
-                'title' =>
-                $video->title,
+                'title' => $video->title,
 
-                'subtitle' =>
-                $video->subtitle,
+                'subtitle' => $video->subtitle,
 
-                'sourceType' =>
-                $video->source_type,
+                'sourceType' => $video->source_type,
 
-                /*
-                 * youtubeId hanya diberikan untuk
-                 * source YouTube yang sudah lolos
-                 * StudentAccess.
-                 */
-                'youtubeId' =>
-                $private
+                'youtubeId' => $private
                     ? null
-                    : $video
-                    ->youtube_id,
+                    : $video->youtube_id,
 
-                'videoUrl' =>
-                $private
-                    ? route(
-                        'api.media.video',
-                        [
-                            'video' =>
-                            $video->id,
-                        ]
-                    )
+                'videoUrl' => $private
+                    ? route('api.media.video', [
+                        'video' => $video->id,
+                    ])
                     : null,
 
-                'requiresAuth' =>
-                $private,
+                'requiresAuth' => $private,
 
-                'isDone' =>
-                (bool) $isDone,
+                'isDone' => $isDone,
             ];
         }
 
-        foreach (
-            $chapter->materiPdf
-            as $pdf
-        ) {
+        /*
+    |--------------------------------------------------------------------------
+    | PDF / RANGKUMAN
+    |--------------------------------------------------------------------------
+    */
+
+        foreach ($chapter->materiPdf as $pdf) {
+
             StudentAccess::pdf(
                 $user,
                 (int) $pdf->id
             );
 
-            $isDone = $progress
-                ->where(
-                    'pdf_id',
-                    $pdf->id
-                )
-                ->first();
+            $private = $pdf->storage_type === 'private_file';
 
-            $private =
-                $pdf->storage_type
-                === 'private_file';
+            $isDone = in_array(
+                (int) $pdf->id,
+                $completedPdfIds,
+                true
+            );
 
             $items[] = [
-                'id' =>
-                'r-' . $pdf->id,
+                'id' => 'r-' . $pdf->id,
 
-                'resourceId' =>
-                $pdf->id,
+                'resourceId' => (int) $pdf->id,
 
-                'chapterId' =>
-                (string)
-                $chapter->id,
+                'chapterId' => (string) $chapter->id,
 
-                'type' =>
-                'rangkuman',
+                'type' => 'rangkuman',
 
-                'title' =>
-                $pdf->title,
+                'title' => $pdf->title,
 
-                'pdfUrl' =>
-                $private
-                    ? route(
-                        'api.media.pdf',
-                        [
-                            'pdf' =>
-                            $pdf->id,
-                        ]
-                    )
-                    : $pdf
-                    ->pdf_url,
+                'pdfUrl' => $private
+                    ? route('api.media.pdf', [
+                        'pdf' => $pdf->id,
+                    ])
+                    : $pdf->pdf_url,
 
-                'requiresAuth' =>
-                $private,
+                'requiresAuth' => $private,
 
-                'isDone' =>
-                (bool) $isDone,
+                'isDone' => $isDone,
             ];
         }
 
+        /*
+    |--------------------------------------------------------------------------
+    | QUIZ
+    |--------------------------------------------------------------------------
+    */
+
         $quizzes = Quiz::query()
             ->withCount('questions')
-            ->where(
-                'class_id',
-                $chapter->class_id
-            )
+            ->where('class_id', $chapter->class_id)
             ->get();
 
-        foreach (
-            $quizzes
-            as $quiz
-        ) {
+        foreach ($quizzes as $quiz) {
+
             StudentAccess::quiz(
                 $user,
                 (int) $quiz->id
             );
 
-            $isDone = $progress
-                ->where(
-                    'quiz_id',
-                    $quiz->id
-                )
-                ->first();
+            $isDone = in_array(
+                (int) $quiz->id,
+                $completedQuizIds,
+                true
+            );
 
             $items[] = [
-                'id' =>
-                'q-' . $quiz->id,
+                'id' => 'q-' . $quiz->id,
 
-                'resourceId' =>
-                $quiz->id,
+                'resourceId' => (int) $quiz->id,
 
-                'chapterId' =>
-                (string)
-                $chapter->id,
+                'chapterId' => (string) $chapter->id,
 
-                'type' =>
-                'kuis',
+                'type' => 'kuis',
 
-                'title' =>
-                $quiz->title,
+                'title' => $quiz->title,
 
-                'totalQuestion' =>
-                $quiz
-                    ->questions_count,
+                'totalQuestion' => $quiz->questions_count,
 
-                'isDone' =>
-                (bool) $isDone,
+                'isDone' => $isDone,
             ];
         }
 
+        /*
+    |--------------------------------------------------------------------------
+    | Hitung total resource
+    |--------------------------------------------------------------------------
+    */
+
+        $totalResources = count($items);
+
+        $completedResources =
+            count($completedVideoIds) +
+            count($completedPdfIds) +
+            count($completedQuizIds);
+
+        /*
+    |--------------------------------------------------------------------------
+    | Progress
+    |--------------------------------------------------------------------------
+    */
+
+        $progressPercent = $progress?->progress_percent ?? 0;
+
+        /*
+    |--------------------------------------------------------------------------
+    | Response
+    |--------------------------------------------------------------------------
+    */
+
         return response()->json([
             'success' => true,
+
             'data' => $items,
+
+            'progress' => [
+                'percent' => (int) $progressPercent,
+
+                'status' => (bool) ($progress?->status ?? false),
+
+                'totalResources' => $totalResources,
+
+                'completedResources' => $completedResources,
+
+                'completedVideoIds' => $completedVideoIds,
+
+                'completedPdfIds' => $completedPdfIds,
+
+                'completedQuizIds' => $completedQuizIds,
+            ],
         ]);
     }
 }

@@ -9,177 +9,280 @@ use App\Services\AssessmentScoringService;
 use App\Support\StudentAccess;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
+use App\Models\Chapter;
+use App\Models\Quiz;
 
 class ProgressController extends Controller
 {
-    public function store(
-        Request $request
-    ) {
+    public function store(Request $request)
+    {
         $user = $request->user();
 
-        StudentAccess::ensureStudent(
-            $user
-        );
+        StudentAccess::ensureStudent($user);
 
-        $data = $request->validate([
+        $validated = $request->validate([
             'chapter_id' => [
                 'required',
                 'integer',
+                'exists:chapters,id',
             ],
 
             'video_id' => [
                 'nullable',
                 'integer',
+                'exists:videos,id',
             ],
 
             'pdf_id' => [
                 'nullable',
                 'integer',
+                'exists:materi_pdfs,id',
             ],
 
             'quiz_id' => [
                 'nullable',
                 'integer',
+                'exists:quizzes,id',
             ],
         ]);
 
-        $chapter =
-            StudentAccess::chapter(
-                $user,
-                (int) $data['chapter_id']
+        /*
+    |--------------------------------------------------------------------------
+    | Pastikan minimal ada satu resource
+    |--------------------------------------------------------------------------
+    */
+
+        if (
+            empty($validated['video_id']) &&
+            empty($validated['pdf_id']) &&
+            empty($validated['quiz_id'])
+        ) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Minimal satu resource harus dikirim.',
+            ], 422);
+        }
+
+        /*
+    |--------------------------------------------------------------------------
+    | Pastikan student memiliki akses ke chapter
+    |--------------------------------------------------------------------------
+    */
+
+        $chapter = StudentAccess::chapter(
+            $user,
+            (int) $validated['chapter_id']
+        );
+
+        /*
+    |--------------------------------------------------------------------------
+    | Simpan progress
+    |--------------------------------------------------------------------------
+    */
+
+        $progress = UserLearningProgress::firstOrCreate(
+            [
+                'user_id' => $user->id,
+                'chapter_id' => $chapter->id,
+            ],
+            [
+                'completed_video_ids' => [],
+                'completed_pdf_ids' => [],
+                'completed_quiz_ids' => [],
+                'progress_percent' => 0,
+                'status' => false,
+            ]
+        );
+
+        /*
+    |--------------------------------------------------------------------------
+    | VIDEO
+    |--------------------------------------------------------------------------
+    */
+
+        if (!empty($validated['video_id'])) {
+
+            $videoId = (int) $validated['video_id'];
+
+            StudentAccess::video($user, $videoId);
+
+            $completedVideos = array_map(
+                'intval',
+                $progress->completed_video_ids ?? []
             );
 
-        if (
-            ! empty($data['video_id'])
-        ) {
-            $video =
-                StudentAccess::video(
-                    $user,
-                    (int)
-                    $data['video_id']
-                );
-
-            if (
-                (int)
-                $video->chapter_id
-                !==
-                (int)
-                $chapter->id
-            ) {
-                throw ValidationException::withMessages([
-                    'video_id' =>
-                    'Video tidak termasuk dalam chapter ini.',
-                ]);
+            if (!in_array($videoId, $completedVideos, true)) {
+                $completedVideos[] = $videoId;
             }
+
+            $progress->completed_video_ids = array_values(
+                array_unique($completedVideos)
+            );
         }
 
-        if (
-            ! empty($data['pdf_id'])
-        ) {
-            $pdf =
-                StudentAccess::pdf(
-                    $user,
-                    (int)
-                    $data['pdf_id']
-                );
+        /*
+    |--------------------------------------------------------------------------
+    | PDF
+    |--------------------------------------------------------------------------
+    */
 
-            if (
-                (int)
-                $pdf->chapter_id
-                !==
-                (int)
-                $chapter->id
-            ) {
-                throw ValidationException::withMessages([
-                    'pdf_id' =>
-                    'PDF tidak termasuk dalam chapter ini.',
-                ]);
-            }
-        }
+        if (!empty($validated['pdf_id'])) {
 
-        if (
-            ! empty($data['quiz_id'])
-        ) {
-            $quiz =
-                StudentAccess::quiz(
-                    $user,
-                    (int)
-                    $data['quiz_id']
-                );
+            $pdfId = (int) $validated['pdf_id'];
 
-            if (
-                (int)
-                $quiz->class_id
-                !==
-                (int)
-                $chapter->class_id
-            ) {
-                throw ValidationException::withMessages([
-                    'quiz_id' =>
-                    'Quiz tidak termasuk dalam kelas chapter ini.',
-                ]);
-            }
-        }
+            StudentAccess::pdf($user, $pdfId);
 
-        $progress =
-            UserLearningProgress::firstOrNew([
-                'user_id' =>
-                $user->id,
-
-                'chapter_id' =>
-                $chapter->id,
-            ]);
-
-        if (
-            ! empty($data['video_id'])
-        ) {
-            $progress->video_id =
-                $data['video_id'];
-        }
-
-        if (
-            ! empty($data['pdf_id'])
-        ) {
-            $progress->pdf_id =
-                $data['pdf_id'];
-        }
-
-        if (
-            ! empty($data['quiz_id'])
-        ) {
-            $progress->quiz_id =
-                $data['quiz_id'];
-        }
-
-        $done = 0;
-
-        if ($progress->video_id) {
-            $done++;
-        }
-
-        if ($progress->pdf_id) {
-            $done++;
-        }
-
-        if ($progress->quiz_id) {
-            $done++;
-        }
-
-        $progress->progress_percent =
-            (int) (
-                ($done / 3)
-                * 100
+            $completedPdfs = array_map(
+                'intval',
+                $progress->completed_pdf_ids ?? []
             );
 
-        $progress->status =
-            $progress->progress_percent
-            >= 100;
+            if (!in_array($pdfId, $completedPdfs, true)) {
+                $completedPdfs[] = $pdfId;
+            }
+
+            $progress->completed_pdf_ids = array_values(
+                array_unique($completedPdfs)
+            );
+        }
+
+        /*
+    |--------------------------------------------------------------------------
+    | QUIZ
+    |--------------------------------------------------------------------------
+    */
+
+        if (!empty($validated['quiz_id'])) {
+
+            $quizId = (int) $validated['quiz_id'];
+
+            StudentAccess::quiz($user, $quizId);
+
+            $completedQuizzes = array_map(
+                'intval',
+                $progress->completed_quiz_ids ?? []
+            );
+
+            if (!in_array($quizId, $completedQuizzes, true)) {
+                $completedQuizzes[] = $quizId;
+            }
+
+            $progress->completed_quiz_ids = array_values(
+                array_unique($completedQuizzes)
+            );
+        }
+
+        /*
+    |--------------------------------------------------------------------------
+    | Hitung total resource
+    |--------------------------------------------------------------------------
+    */
+
+        $totalVideos = $chapter->videos()->count();
+
+        $totalPdfs = $chapter->materiPdf()->count();
+
+        $totalQuizzes = Quiz::query()
+            ->where('class_id', $chapter->class_id)
+            ->count();
+
+        $totalResources =
+            $totalVideos +
+            $totalPdfs +
+            $totalQuizzes;
+
+        /*
+    |--------------------------------------------------------------------------
+    | Hitung resource yang sudah selesai
+    |--------------------------------------------------------------------------
+    */
+
+        $completedVideosCount = count(
+            $progress->completed_video_ids ?? []
+        );
+
+        $completedPdfsCount = count(
+            $progress->completed_pdf_ids ?? []
+        );
+
+        $completedQuizzesCount = count(
+            $progress->completed_quiz_ids ?? []
+        );
+
+        $completedResources =
+            $completedVideosCount +
+            $completedPdfsCount +
+            $completedQuizzesCount;
+
+        /*
+    |--------------------------------------------------------------------------
+    | Hitung persentase
+    |--------------------------------------------------------------------------
+    */
+
+        if ($totalResources > 0) {
+            $progressPercent = (int) round(
+                ($completedResources / $totalResources) * 100
+            );
+        } else {
+            $progressPercent = 0;
+        }
+
+        $progressPercent = max(
+            0,
+            min(100, $progressPercent)
+        );
+
+        $progress->progress_percent = $progressPercent;
+
+        $progress->status = $progressPercent >= 100;
+
+        /*
+    |--------------------------------------------------------------------------
+    | Simpan
+    |--------------------------------------------------------------------------
+    */
 
         $progress->save();
 
+        /*
+    |--------------------------------------------------------------------------
+    | Response
+    |--------------------------------------------------------------------------
+    */
+
         return response()->json([
             'success' => true,
-            'data' => $progress,
+            'message' => 'Progress berhasil disimpan.',
+
+            'data' => [
+                'chapterId' => (string) $chapter->id,
+
+                'completedVideoIds' => array_values(
+                    array_map(
+                        'intval',
+                        $progress->completed_video_ids ?? []
+                    )
+                ),
+
+                'completedPdfIds' => array_values(
+                    array_map(
+                        'intval',
+                        $progress->completed_pdf_ids ?? []
+                    )
+                ),
+
+                'completedQuizIds' => array_values(
+                    array_map(
+                        'intval',
+                        $progress->completed_quiz_ids ?? []
+                    )
+                ),
+
+                'progressPercent' => (int) $progress->progress_percent,
+
+                'status' => (bool) $progress->status,
+            ],
         ]);
     }
 
