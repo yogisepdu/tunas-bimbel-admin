@@ -1,25 +1,30 @@
 <!DOCTYPE html>
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
-    <head>
 
-        <meta charset="utf-8">
-        <meta name="csrf-token" content="{{ csrf_token() }}">
+<head>
 
-        <title>{{ config('app.name') }}</title>
+    <meta charset="utf-8">
+    <meta content="{{ csrf_token() }}" name="csrf-token">
 
-        @vite(['resources/css/app.css','resources/js/app.js'])
+    <title>{{ config('app.name') }}</title>
+    {{-- Favicon Tunas Bimbel --}}
+    <link href="{{ asset('assets/tunas-favicon.png') }}" rel="icon" type="image/png">
+    <link href="{{ asset('assets/tunas-favicon.png') }}" rel="shortcut icon" type="image/png">
 
-        @livewireStyles
-        @fluxAppearance
+    @vite(['resources/css/app.css', 'resources/js/app.js'])
 
-    </head>
+    @livewireStyles
+    @fluxAppearance
 
-    <body class="min-h-screen bg-zinc-100 dark:bg-zinc-900">
+</head>
 
-        {{ $slot }}
+<body class="min-h-screen bg-zinc-100 dark:bg-zinc-900">
 
-        @livewireScripts
-        @fluxScripts
+    {{ $slot }}
 
-    </body>
+    @livewireScripts
+    @fluxScripts
+
+</body>
+
 </html>

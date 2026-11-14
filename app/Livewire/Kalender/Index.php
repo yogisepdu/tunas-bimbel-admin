@@ -4,8 +4,12 @@ namespace App\Livewire\Kalender;
 
 use App\Models\CalendarEvent;
 use Carbon\Carbon;
-use Livewire\Component;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Http\Client\ConnectionException;
+use Illuminate\Http\Client\RequestException;
+use Livewire\Component;
 
 class Index extends Component
 {
@@ -13,29 +17,77 @@ class Index extends Component
     public $currentYear;
     public $events = [];
     public $holidays = [];
-    protected $listeners = ['event-created' => 'loadEvents'];
 
+    protected $listeners = [
+        'event-created' => 'loadEvents',
+    ];
+
+    /**
+     * Mengambil data hari libur dari API.
+     * Jika API gagal, gunakan data cache.
+     */
     public function loadHolidays()
     {
-        $response = Http::get("https://libur.deno.dev/api", [
-            'year' => $this->currentYear
-        ]);
+        $year = (int) $this->currentYear;
+        $cacheKey = "calendar_holidays_{$year}";
 
-        if ($response->successful()) {
+        try {
+            $response = Http::timeout(5)
+                ->retry(2, 300)
+                ->get('https://libur.deno.dev/api', [
+                    'year' => $year,
+                ]);
 
-            $this->holidays = collect($response->json())
+            $response->throw();
+
+            $data = $response->json();
+
+            if (!is_array($data)) {
+                throw new \UnexpectedValueException(
+                    'Format data hari libur dari API tidak valid.'
+                );
+            }
+
+            $holidays = collect($data)
+                ->filter(function ($item) {
+                    return is_array($item)
+                        && !empty($item['date'])
+                        && isset($item['name']);
+                })
                 ->mapWithKeys(function ($item) {
                     return [
-                        $item['date'] => $item['name']
+                        $item['date'] => $item['name'],
                     ];
                 })
                 ->toArray();
+
+            // Simpan data berhasil selama 7 hari.
+            Cache::put(
+                $cacheKey,
+                $holidays,
+                now()->addDays(7)
+            );
+
+            $this->holidays = $holidays;
+        } catch (
+            ConnectionException |
+            RequestException |
+            \UnexpectedValueException $e
+        ) {
+            Log::warning('Gagal mengambil data hari libur.', [
+                'year' => $year,
+                'error' => $e->getMessage(),
+            ]);
+
+            // Gunakan cache jika API tidak dapat diakses.
+            $this->holidays = Cache::get($cacheKey, []);
         }
     }
 
     public function mount()
     {
         $this->currentYear = now()->year;
+        $this->currentMonth = now()->month;
 
         $this->loadEvents();
         $this->loadHolidays();
@@ -44,36 +96,61 @@ class Index extends Component
     public function previousYear()
     {
         $this->currentYear--;
+
         $this->loadHolidays();
     }
 
     public function nextYear()
     {
         $this->currentYear++;
+
         $this->loadHolidays();
     }
 
     public function loadEvents()
     {
-        $this->events = CalendarEvent::all()->groupBy(function ($event) {
-            return Carbon::parse($event->event_date)->format('Y-m-d');
-        })->toArray();
+        $this->events = CalendarEvent::all()
+            ->groupBy(function ($event) {
+                return Carbon::parse($event->event_date)
+                    ->format('Y-m-d');
+            })
+            ->toArray();
     }
 
     public function previousMonth()
     {
-        $date = Carbon::create($this->currentYear, $this->currentMonth, 1)->subMonth();
+        $oldYear = $this->currentYear;
+
+        $date = Carbon::create(
+            $this->currentYear,
+            $this->currentMonth,
+            1
+        )->subMonth();
 
         $this->currentMonth = $date->month;
         $this->currentYear = $date->year;
+
+        if ($oldYear !== $this->currentYear) {
+            $this->loadHolidays();
+        }
     }
 
     public function nextMonth()
     {
-        $date = Carbon::create($this->currentYear, $this->currentMonth, 1)->addMonth();
+        $oldYear = $this->currentYear;
+
+        $date = Carbon::create(
+            $this->currentYear,
+            $this->currentMonth,
+            1
+        )->addMonth();
 
         $this->currentMonth = $date->month;
         $this->currentYear = $date->year;
+
+        if ($oldYear !== $this->currentYear) {
+            $this->loadHolidays();
+        }
     }
 
     public function deleteEvent($id)
@@ -82,12 +159,20 @@ class Index extends Component
 
         $this->loadEvents();
 
-        session()->flash('message', 'Event berhasil dihapus');
+        session()->flash(
+            'message',
+            'Event berhasil dihapus'
+        );
     }
 
     public function render()
     {
-        $startOfMonth = Carbon::create($this->currentYear, $this->currentMonth, 1);
+        $startOfMonth = Carbon::create(
+            $this->currentYear,
+            $this->currentMonth,
+            1
+        );
+
         $daysInMonth = $startOfMonth->daysInMonth;
         $startDay = $startOfMonth->dayOfWeek;
 

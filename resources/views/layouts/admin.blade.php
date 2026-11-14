@@ -1,13 +1,17 @@
 <!DOCTYPE html>
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
+
 <head>
 
     <meta charset="utf-8">
-    <meta name="csrf-token" content="{{ csrf_token() }}">
+    <meta content="{{ csrf_token() }}" name="csrf-token">
 
     <title>{{ config('app.name') }}</title>
+    {{-- Favicon Tunas Bimbel --}}
+    <link href="{{ asset('assets/tunas-favicon.png') }}" rel="icon" type="image/png">
+    <link href="{{ asset('assets/tunas-favicon.png') }}" rel="shortcut icon" type="image/png">
 
-    @vite(['resources/css/app.css','resources/js/app.js'])
+    @vite(['resources/css/app.css', 'resources/js/app.js'])
 
     @livewireStyles
     @fluxAppearance
@@ -19,16 +23,12 @@
     <div class="flex h-screen">
 
         <!-- SIDEBAR -->
-        <flux:sidebar sticky collapsible="mobile"
-            class="bg-zinc-50 dark:bg-zinc-900 border-r border-zinc-200 dark:border-zinc-700">
+        <flux:sidebar class="border-r border-zinc-200 bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900"
+            collapsible="mobile" sticky>
 
             <flux:sidebar.header>
-                <flux:sidebar.brand
-                    href="#"
-                    logo="https://fluxui.dev/img/demo/logo.png"
-                    logo:dark="https://fluxui.dev/img/demo/dark-mode-logo.png"
-                    name="Acme Inc."
-                />
+                <flux:sidebar.brand href="#" logo:dark="https://fluxui.dev/img/demo/dark-mode-logo.png"
+                    logo="https://fluxui.dev/img/demo/logo.png" name="Acme Inc." />
                 <flux:sidebar.collapse class="lg:hidden" />
             </flux:sidebar.header>
 
@@ -37,20 +37,17 @@
         </flux:sidebar>
 
         <!-- CONTENT AREA -->
-        <div class="flex-1 flex flex-col">
+        <div class="flex flex-1 flex-col">
 
             <!-- HEADER -->
-            <flux:header class="bg-white dark:bg-zinc-900 border-b border-zinc-200 dark:border-zinc-700 px-6">
+            <flux:header class="border-b border-zinc-200 bg-white px-6 dark:border-zinc-700 dark:bg-zinc-900">
 
                 <div class="flex items-center gap-3">
-                    <flux:sidebar.toggle class="lg:hidden text-zinc-700 dark:text-white" />
+                    <flux:sidebar.toggle class="text-zinc-700 lg:hidden dark:text-white" />
 
-                    <flux:button
-                        variant="ghost"
-                        icon="arrow-left"
+                    <flux:button icon="arrow-left"
                         onclick="window.history.length > 1 ? history.back() : window.location='{{ route('dashboard') }}'"
-                        wire:navigate
-                    />
+                        variant="ghost" wire:navigate />
 
                     <flux:heading size="lg">
                         {{ $title ?? 'Dashboard' }}
@@ -61,7 +58,7 @@
             </flux:header>
 
             <!-- MAIN CONTENT -->
-            <flux:main class="p-6 flex-1 overflow-auto">
+            <flux:main class="flex-1 overflow-auto p-6">
 
                 {{ $slot }}
 
@@ -91,7 +88,9 @@
                 }).then((result) => {
 
                     if (result.isConfirmed) {
-                        Livewire.dispatch('deleteClass', { id: data.id })
+                        Livewire.dispatch('deleteClass', {
+                            id: data.id
+                        })
                     }
 
                 });
@@ -102,4 +101,5 @@
     </script>
 
 </body>
+
 </html>

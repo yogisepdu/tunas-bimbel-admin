@@ -7,11 +7,14 @@
     <meta content="{{ csrf_token() }}" name="csrf-token">
 
     <title>{{ config('app.name', 'Tunas Bimbel') }}</title>
+
+    {{-- Favicon Tunas Bimbel --}}
+    <link href="{{ asset('assets/tunas-favicon.png') }}" rel="icon" type="image/png">
+    <link href="{{ asset('assets/tunas-favicon.png') }}" rel="shortcut icon" type="image/png">
+
     <meta
         content="Tunas Bimbel - platform pembelajaran online dengan materi, video, PDF, quiz, tryout, dan evaluasi belajar."
         name="description">
-
-    <link href="{{ asset('assets/images/favicon.png') }}" rel="shortcut icon" type="image/x-icon">
 
     {{-- Font --}}
     <link href="https://fonts.googleapis.com" rel="preconnect">

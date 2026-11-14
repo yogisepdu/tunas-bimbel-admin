@@ -9,9 +9,8 @@
     <nav class="navbar navbar-expand-lg tunas-navbar">
         <div class="container">
             <a class="navbar-brand" href="{{ route('home') }}">
-                <span class="brand-mark">
-                    <i class="ti-book"></i>
-                </span>
+                <img alt="Logo Tunas Bimbel" src="{{ asset('assets/tunas-logo.png') }}"
+                    style="height: 32px; border-radius: 20%;">
                 <span class="brand-copy">
                     <strong>Tunas Bimbel</strong>
                     <small>Belajar • Tumbuh • Berprestasi</small>

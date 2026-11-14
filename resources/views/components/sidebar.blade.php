@@ -115,10 +115,10 @@
 
                     <flux:sidebar.item
                         :current="
-                                                                                                                                                                request()->routeIs(
-                                                                                                                                                                    'payment-methods.*'
-                                                                                                                                                                )
-                                                                                                                                                            "
+                                                                                                                                                                                        request()->routeIs(
+                                                                                                                                                                                            'payment-methods.*'
+                                                                                                                                                                                        )
+                                                                                                                                                                                    "
                         class="font-medium hover:bg-zinc-800 hover:text-white data-[current]:bg-zinc-800 data-[current]:text-white"
                         href="{{ route('payment-methods.index') }}" icon="credit-card" wire:navigate>
                         Metode Pembayaran
@@ -126,10 +126,10 @@
 
                     <flux:sidebar.item
                         :current="
-                                                                                                                request()->routeIs(
-                                                                                                                    'transactions.*'
-                                                                                                                )
-                                                                                                            "
+                                                                                                                                        request()->routeIs(
+                                                                                                                                            'transactions.*'
+                                                                                                                                        )
+                                                                                                                                    "
                         class="font-medium hover:bg-zinc-800 hover:text-white data-[current]:bg-zinc-800 data-[current]:text-white"
                         href="{{ route('transactions.index') }}" icon="clipboard-document-list" wire:navigate>
                         Transaksi Paket
@@ -179,7 +179,7 @@
         <!-- PROFILE -->
         <flux:dropdown align="start" class="max-lg:hidden" position="top">
 
-            <flux:sidebar.profile avatar="https://fluxui.dev/img/demo/user.png"
+            <flux:sidebar.profile avatar="{{ asset('assets/tunas-logo.png') }}"
                 name="{{ auth()->user()->name ?? 'User' }}" />
 
             <flux:menu>
