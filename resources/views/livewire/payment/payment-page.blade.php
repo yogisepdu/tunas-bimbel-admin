@@ -896,6 +896,153 @@
                 text-align: center;
             }
         }
+
+        /* =========================================================
+   ADMIN CONTACT CARD
+   ========================================================= */
+
+        .admin-contact-card {
+            margin-top: 18px;
+            padding: 20px;
+            border: 1px solid #e2e5f0;
+            border-radius: 18px;
+            background:
+                linear-gradient(135deg,
+                    #ffffff 0%,
+                    #fafaff 100%);
+            box-shadow: 0 10px 30px rgba(35, 39, 72, .05);
+        }
+
+        .admin-contact-header {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+
+        .admin-contact-icon {
+            width: 42px;
+            height: 42px;
+            display: grid;
+            place-items: center;
+            flex: 0 0 42px;
+            border-radius: 13px;
+            background: var(--pay-primary-soft);
+            color: var(--pay-primary);
+            font-size: 17px;
+        }
+
+        .admin-contact-header h3 {
+            margin: 0;
+            color: var(--pay-dark);
+            font-size: 15px;
+            font-weight: 850;
+        }
+
+        .admin-contact-header p {
+            margin: 4px 0 0;
+            color: var(--pay-muted);
+            font-size: 9px;
+            line-height: 1.65;
+        }
+
+        .admin-contact-actions {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 10px;
+        }
+
+        .admin-contact-button {
+            min-height: 48px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 0 14px;
+            border-radius: 12px;
+            font-family: inherit;
+            font-size: 9px;
+            font-weight: 850;
+            text-decoration: none !important;
+            transition: .2s ease;
+        }
+
+        .admin-contact-button:hover {
+            transform: translateY(-1px);
+        }
+
+        .admin-contact-whatsapp {
+            border: 1px solid #cfeee3;
+            background: #f1fbf7;
+            color: #16845f !important;
+        }
+
+        .admin-contact-whatsapp:hover {
+            background: #e6f8f0;
+        }
+
+        .admin-contact-email {
+            border: 1px solid #dedaff;
+            background: #f7f6ff;
+            color: var(--pay-primary) !important;
+        }
+
+        .admin-contact-email:hover {
+            background: #efedff;
+        }
+
+        .admin-contact-detail {
+            margin-top: 13px;
+            padding-top: 13px;
+            border-top: 1px solid var(--pay-border);
+        }
+
+        .admin-contact-detail-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            padding: 5px 0;
+        }
+
+        .admin-contact-detail-row span {
+            color: var(--pay-muted);
+            font-size: 8px;
+        }
+
+        .admin-contact-detail-row strong {
+            color: var(--pay-dark);
+            font-size: 9px;
+            font-weight: 800;
+            text-align: right;
+            word-break: break-word;
+        }
+
+        .admin-contact-note {
+            margin-top: 12px;
+            padding: 10px 12px;
+            border-radius: 10px;
+            background: #f7f8fb;
+            color: var(--pay-muted);
+            font-size: 8px;
+            line-height: 1.6;
+        }
+
+        @media (max-width: 575.98px) {
+            .admin-contact-actions {
+                grid-template-columns: 1fr;
+            }
+
+            .admin-contact-detail-row {
+                align-items: flex-start;
+                flex-direction: column;
+                gap: 3px;
+            }
+
+            .admin-contact-detail-row strong {
+                text-align: left;
+            }
+        }
     </style>
 
     <header class="payment-topbar">
@@ -1054,14 +1201,152 @@
                             @if ($transaction->proof_original_name)
                                 <div class="instruction-box">
                                     <strong>Bukti yang dikirim</strong>
+
                                     <p>
                                         {{ $transaction->proof_original_name }}
+
                                         @if ($transaction->proof_uploaded_at)
-                                            — dikirim {{ $transaction->proof_uploaded_at->format('d M Y, H:i') }}
+                                            — dikirim
+                                            {{ $transaction->proof_uploaded_at->format('d M Y, H:i') }}
                                         @endif
                                     </p>
                                 </div>
                             @endif
+
+                            {{-- =========================================================
+     HUBUNGI ADMIN
+     ========================================================= --}}
+
+                            @php
+                                $adminName = config('tunas_bimbel.admin_name', 'Admin Tunas Bimbel');
+
+                                $adminEmail = config('tunas_bimbel.admin_email', 'admin@tunasbimbel.com');
+
+                                $adminWhatsapp = preg_replace('/\D+/', '', config('tunas_bimbel.admin_whatsapp', ''));
+
+                                $whatsappMessage = implode("\n", [
+                                    'Halo ' . $adminName . ',',
+                                    '',
+                                    'Saya ingin melakukan konfirmasi pembayaran Tunas Bimbel.',
+                                    '',
+                                    'Invoice: ' . $transaction->invoice_no,
+                                    'Paket: ' . $transaction->package_name,
+                                    'Total: Rp ' . number_format((float) $transaction->total, 0, ',', '.'),
+                                    'Metode: ' . ($transaction->payment_method_name ?: '-'),
+                                    'Status: ' . $transaction->status_label,
+                                    '',
+                                    'Mohon bantuannya untuk mengecek pembayaran saya.',
+                                    'Terima kasih.',
+                                ]);
+
+                                $whatsappUrl = $adminWhatsapp
+                                    ? 'https://wa.me/' . $adminWhatsapp . '?text=' . urlencode($whatsappMessage)
+                                    : null;
+
+                                $emailSubject = 'Konfirmasi Pembayaran - ' . $transaction->invoice_no;
+
+                                $emailBody = implode("\n", [
+                                    'Halo ' . $adminName . ',',
+                                    '',
+                                    'Saya ingin melakukan konfirmasi pembayaran Tunas Bimbel.',
+                                    '',
+                                    'Invoice: ' . $transaction->invoice_no,
+                                    'Paket: ' . $transaction->package_name,
+                                    'Total: Rp ' . number_format((float) $transaction->total, 0, ',', '.'),
+                                    'Metode: ' . ($transaction->payment_method_name ?: '-'),
+                                    'Status: ' . $transaction->status_label,
+                                    '',
+                                    'Mohon bantuannya untuk mengecek pembayaran saya.',
+                                    '',
+                                    'Terima kasih.',
+                                ]);
+
+                                $emailUrl =
+                                    'mailto:' .
+                                    $adminEmail .
+                                    '?subject=' .
+                                    urlencode($emailSubject) .
+                                    '&body=' .
+                                    urlencode($emailBody);
+                            @endphp
+
+                            <div class="admin-contact-card">
+
+                                <div class="admin-contact-header">
+                                    <div class="admin-contact-icon">
+                                        <i class="ti-headphone-alt"></i>
+                                    </div>
+
+                                    <div>
+                                        <h3>Butuh Bantuan Pembayaran?</h3>
+
+                                        <p>
+                                            Jika Anda sudah melakukan transfer dan ingin melakukan
+                                            konfirmasi, silakan hubungi {{ $adminName }}.
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <div class="admin-contact-actions">
+
+                                    {{-- WHATSAPP --}}
+                                    @if ($whatsappUrl)
+                                        <a class="admin-contact-button admin-contact-whatsapp"
+                                            href="{{ $whatsappUrl }}" rel="noopener noreferrer" target="_blank">
+                                            <i class="ti-comment-alt"></i>
+
+                                            Chat WhatsApp Admin
+                                        </a>
+                                    @endif
+
+                                    {{-- EMAIL --}}
+                                    <a class="admin-contact-button admin-contact-email" href="{{ $emailUrl }}">
+                                        <i class="ti-email"></i>
+
+                                        Email Admin
+                                    </a>
+
+                                </div>
+
+                                <div class="admin-contact-detail">
+
+                                    <div class="admin-contact-detail-row">
+                                        <span>Admin</span>
+
+                                        <strong>
+                                            {{ $adminName }}
+                                        </strong>
+                                    </div>
+
+                                    <div class="admin-contact-detail-row">
+                                        <span>Email</span>
+
+                                        <strong>
+                                            {{ $adminEmail }}
+                                        </strong>
+                                    </div>
+
+                                    @if ($adminWhatsapp)
+                                        <div class="admin-contact-detail-row">
+                                            <span>WhatsApp</span>
+
+                                            <strong>
+                                                +{{ $adminWhatsapp }}
+                                            </strong>
+                                        </div>
+                                    @endif
+
+                                </div>
+
+                                <div class="admin-contact-note">
+                                    <i class="ti-info-alt"></i>
+
+                                    Saat menghubungi admin, Anda dapat menyebutkan
+                                    <strong>{{ $transaction->invoice_no }}</strong>
+                                    agar pembayaran dapat ditemukan dengan lebih cepat.
+                                </div>
+
+                            </div>
                         </section>
 
                         {{-- EXPIRED --}}
@@ -1187,7 +1472,8 @@
                                             </div>
 
                                             <button class="copy-light js-payment-copy"
-                                                data-copy="{{ $transaction->payment_account_number }}" type="button">
+                                                data-copy="{{ $transaction->payment_account_number }}"
+                                                type="button">
                                                 Salin
                                             </button>
                                         </div>
