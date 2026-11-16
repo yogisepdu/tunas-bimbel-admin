@@ -27,23 +27,29 @@ class ProfileController extends Controller
     {
         $user = $request->user();
 
+        if (!$user) {
+            return response()->json([
+                'message' => 'Unauthenticated',
+            ], 401);
+        }
+
         $validated = $request->validate([
-            'name' => 'required|string',
-            'phone' => 'required|string',
+            'name' => 'required|string|max:255',
+            'phone' => 'required|string|max:20',
             'gender' => 'required|in:pria,wanita',
-            'province_id' => 'nullable',
-            'regency_id' => 'nullable',
-            'district_id' => 'nullable',
-            'village_id' => 'nullable',
+            'province_id' => 'nullable|integer',
+            'regency_id' => 'nullable|integer',
+            'district_id' => 'nullable|integer',
+            'village_id' => 'nullable|integer',
         ]);
 
-        // 🔥 CREATE ATAU UPDATE
-        $profile = ProfileSiswa::updateOrCreate(
-            ['user_id' => $user->id],
+        $profile = $user->profile()->updateOrCreate(
+            [],
             $validated
         );
 
         return response()->json([
+            'success' => true,
             'message' => 'Profil berhasil disimpan',
             'profile' => $profile,
         ]);

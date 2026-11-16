@@ -4,64 +4,77 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
-use Illuminate\Auth\Events\PasswordReset;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Password;
-use Illuminate\Support\Str;
 use App\Models\ProfileSiswa;
 use App\Models\Student;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class AuthController extends Controller
 {
-    // ======================
-    // 🔐 LOGIN
-    // ======================
+    /*
+    |--------------------------------------------------------------------------
+    | LOGIN
+    |--------------------------------------------------------------------------
+    */
+
     public function login(Request $request)
     {
         $credentials = $request->validate([
             'email' => 'required|email',
-            'password' => 'required'
+            'password' => 'required',
         ]);
 
-        // 🔥 CEK USER DULU (LEBIH AMAN DARI Auth::attempt)
-        $user = User::where('email', $credentials['email'])->first();
+        $user = User::where(
+            'email',
+            $credentials['email']
+        )->first();
 
-        if (!$user || !Hash::check($credentials['password'], $user->password)) {
+        if (
+            !$user ||
+            !Hash::check(
+                $credentials['password'],
+                $user->password
+            )
+        ) {
             return response()->json([
-                'message' => 'Email atau password salah'
+                'message' => 'Email atau password salah.',
             ], 401);
         }
 
-        // 🔥 CEK VERIFIKASI EMAIL
         if (!$user->hasVerifiedEmail()) {
             return response()->json([
-                'message' => 'Email belum diverifikasi'
+                'message' => 'Email belum diverifikasi.',
             ], 403);
         }
 
-        // 🔥 CEK ROLE
         if ($user->role !== 'student') {
             return response()->json([
-                'message' => 'Akses ditolak. Hanya student yang dapat login.'
+                'message' => 'Akses ditolak. Hanya student yang dapat login.',
             ], 403);
         }
 
-        // 🔥 GENERATE TOKEN
-        $token = $user->createToken('mobile-token', ['student'])->plainTextToken;
+        $token = $user->createToken(
+            'mobile-token',
+            ['student']
+        )->plainTextToken;
 
         return response()->json([
-            'message' => 'Login berhasil',
+            'message' => 'Login berhasil.',
             'user' => $user,
-            'token' => $token
-        ]);
+            'token' => $token,
+        ], 200);
     }
 
-    // ======================
-    // 📝 REGISTER
-    // ======================
+
+    /*
+    |--------------------------------------------------------------------------
+    | REGISTER
+    |--------------------------------------------------------------------------
+    */
+
     public function register(Request $request)
     {
         $validated = $request->validate([
@@ -84,11 +97,8 @@ class AuthController extends Controller
         ]);
 
         $user = DB::transaction(function () use ($validated) {
-            /*
-        |--------------------------------------------------------------------------
-        | Buat akun utama
-        |--------------------------------------------------------------------------
-        */
+
+            // Membuat akun utama.
             $user = User::create([
                 'name' => trim($validated['name']),
                 'email' => strtolower(trim($validated['email'])),
@@ -96,11 +106,7 @@ class AuthController extends Controller
                 'role' => 'student',
             ]);
 
-            /*
-        |--------------------------------------------------------------------------
-        | Buat data siswa
-        |--------------------------------------------------------------------------
-        */
+            // Membuat data siswa.
             Student::create([
                 'user_id' => $user->id,
                 'phone' => null,
@@ -110,11 +116,7 @@ class AuthController extends Controller
                 'birth_date' => null,
             ]);
 
-            /*
-        |--------------------------------------------------------------------------
-        | Buat profil aplikasi Android
-        |--------------------------------------------------------------------------
-        */
+            // Membuat profil aplikasi Android.
             ProfileSiswa::create([
                 'user_id' => $user->id,
                 'name' => $user->name,
@@ -129,6 +131,7 @@ class AuthController extends Controller
             return $user;
         });
 
+        // Mengirim email verifikasi.
         $user->sendEmailVerificationNotification();
 
         return response()->json([
@@ -136,103 +139,171 @@ class AuthController extends Controller
         ], 201);
     }
 
-    // ======================
-    // 🔁 RESEND VERIFICATION
-    // ======================
+
+    /*
+    |--------------------------------------------------------------------------
+    | RESEND EMAIL VERIFICATION
+    |--------------------------------------------------------------------------
+    */
+
     public function resendVerification(Request $request)
     {
-        $request->validate([
-            'email' => 'required|email'
+        $validated = $request->validate([
+            'email' => 'required|email',
         ]);
 
-        $user = User::where('email', $request->email)->first();
+        $user = User::where(
+            'email',
+            $validated['email']
+        )->first();
 
         if (!$user) {
             return response()->json([
-                'message' => 'Email tidak ditemukan'
+                'message' => 'Email tidak ditemukan.',
             ], 404);
         }
 
         if ($user->hasVerifiedEmail()) {
             return response()->json([
-                'message' => 'Email sudah diverifikasi'
+                'message' => 'Email sudah diverifikasi.',
             ], 400);
         }
 
         $user->sendEmailVerificationNotification();
 
         return response()->json([
-            'message' => 'Link verifikasi telah dikirim ulang'
-        ]);
+            'message' => 'Link verifikasi telah dikirim ulang.',
+        ], 200);
     }
 
-    // ======================
-    // 🔵 GOOGLE LOGIN
-    // ======================
-    // public function googleLogin(Request $request)
-    // {
-    //     $request->validate([
-    //         'email' => 'required|email',
-    //         'name' => 'required|string',
-    //     ]);
 
-    //     $user = User::firstOrCreate(
-    //         ['email' => $request->email],
-    //         [
-    //             'name' => $request->name,
-    //             'password' => bcrypt('google_login_dummy'),
-    //             'role' => 'student',
-    //             'email_verified_at' => now(), // 🔥 AUTO VERIFIED
-    //         ]
-    //     );
-
-    //     // 🔥 GENERATE TOKEN
-    //     $token = $user->createToken('mobile-token', ['student'])->plainTextToken;
-
-    //     return response()->json([
-    //         'message' => 'Login Google berhasil',
-    //         'user' => $user,
-    //         'token' => $token
-    //     ]);
-    // }
+    /*
+    |--------------------------------------------------------------------------
+    | FORGOT PASSWORD
+    |--------------------------------------------------------------------------
+    */
 
     public function forgotPassword(Request $request)
     {
+        /*
+         * Validasi dilakukan sebelum try-catch.
+         * Email harus terdaftar di tabel users.
+         */
+
+        $validated = $request->validate([
+            'email' => [
+                'required',
+                'email',
+                'exists:users,email',
+            ],
+        ]);
+
         try {
-            $request->validate([
-                'email' => 'required|email|exists:users,email',
+
+            /*
+             * Meminta Laravel Password Broker
+             * mengirimkan link reset password.
+             */
+
+            $status = Password::sendResetLink([
+                'email' => $validated['email'],
             ]);
 
-            $status = Password::sendResetLink(
-                $request->only('email')
-            );
+
+            /*
+             * Link reset password berhasil dikirim.
+             */
 
             if ($status === Password::RESET_LINK_SENT) {
+
                 return response()->json([
-                    'message' => 'Link reset password telah dikirim ke email 📩'
-                ]);
+                    'message' => 'Link reset password telah dikirim ke email.',
+                ], 200);
             }
 
+
+            /*
+             * Permintaan terlalu sering dilakukan.
+             */
+
+            if ($status === Password::RESET_THROTTLED) {
+
+                Log::warning(
+                    'Forgot Password: permintaan terkena rate limit.',
+                    [
+                        'status' => $status,
+                    ]
+                );
+
+                return response()->json([
+                    'message' => 'Terlalu banyak permintaan. Silakan tunggu sebelum mencoba kembali.',
+                ], 429);
+            }
+
+
+            /*
+             * Pengguna tidak ditemukan oleh Password Broker.
+             */
+
+            if ($status === Password::INVALID_USER) {
+
+                return response()->json([
+                    'message' => 'Email tidak ditemukan.',
+                ], 404);
+            }
+
+
+            /*
+             * Menangani status lain dari Password Broker.
+             */
+
+            Log::warning(
+                'Forgot Password: Password Broker mengembalikan status gagal.',
+                [
+                    'status' => $status,
+                ]
+            );
+
             return response()->json([
-                'message' => __($status)
+                'message' => __($status),
             ], 400);
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
+
+            /*
+             * Mencatat exception sebenarnya ke laravel.log.
+             * Detail exception tidak dikirim ke aplikasi Android.
+             */
+
+            Log::error(
+                'Forgot Password Exception.',
+                [
+                    'error' => $e->getMessage(),
+                    'file' => $e->getFile(),
+                    'line' => $e->getLine(),
+                ]
+            );
+
             return response()->json([
-                'message' => 'Server error',
-                'error' => $e->getMessage() // 🔥 INI PENTING BUAT DEBUG
+                'message' => 'Terjadi kesalahan pada server. Silakan coba beberapa saat lagi.',
             ], 500);
         }
     }
 
-    // ======================
-    // 🚪 LOGOUT
-    // ======================
+
+    /*
+    |--------------------------------------------------------------------------
+    | LOGOUT
+    |--------------------------------------------------------------------------
+    */
+
     public function logout(Request $request)
     {
-        $request->user()->currentAccessToken()->delete();
+        $request->user()
+            ->currentAccessToken()
+            ->delete();
 
         return response()->json([
-            'message' => 'Logout berhasil'
-        ]);
+            'message' => 'Logout berhasil.',
+        ], 200);
     }
 }
